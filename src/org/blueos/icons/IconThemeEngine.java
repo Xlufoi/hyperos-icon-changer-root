@@ -12,6 +12,7 @@ import android.graphics.Path;
 import android.graphics.PorterDuff;
 import android.graphics.PorterDuffColorFilter;
 import android.graphics.PorterDuffXfermode;
+import android.graphics.Rect;
 import android.graphics.RectF;
 import android.graphics.drawable.AdaptiveIconDrawable;
 import android.graphics.drawable.Drawable;
@@ -212,14 +213,70 @@ public class IconThemeEngine {
         return bitmap;
     }
 
+    // ==================== Unified Visual Sizing & Content Normalization ====================
+
+    /**
+     * Finds the tight bounding box of visible pixels (alpha > 25) in any bitmap,
+     * scales it proportionally so its maximum dimension is targetSize * fillFraction,
+     * and perfectly centers it in a targetSize x targetSize bitmap.
+     * This guarantees 100% consistent optical fill across Adaptive, Legacy, Vector, and Stock icons!
+     */
+    public static Bitmap normalizeAndCenterBitmap(Bitmap src, int targetSize, float fillFraction) {
+        if (src == null) return null;
+        int w = src.getWidth();
+        int h = src.getHeight();
+        int[] pixels = new int[w * h];
+        src.getPixels(pixels, 0, w, 0, 0, w, h);
+
+        int minX = w, maxX = -1, minY = h, maxY = -1;
+        for (int y = 0; y < h; y++) {
+            int row = y * w;
+            for (int x = 0; x < w; x++) {
+                int a = (pixels[row + x] >>> 24) & 0xff;
+                if (a > 25) {
+                    if (x < minX) minX = x;
+                    if (x > maxX) maxX = x;
+                    if (y < minY) minY = y;
+                    if (y > maxY) maxY = y;
+                }
+            }
+        }
+
+        if (maxX < minX || maxY < minY) {
+            return src; // All transparent, return original
+        }
+
+        int contentW = maxX - minX + 1;
+        int contentH = maxY - minY + 1;
+        int maxDim = Math.max(contentW, contentH);
+
+        float desiredSize = targetSize * fillFraction;
+        float scale = desiredSize / (float) maxDim;
+
+        Bitmap result = Bitmap.createBitmap(targetSize, targetSize, Bitmap.Config.ARGB_8888);
+        Canvas canvas = new Canvas(result);
+        Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG);
+
+        float drawW = contentW * scale;
+        float drawH = contentH * scale;
+        float left = (targetSize - drawW) / 2f;
+        float top = (targetSize - drawH) / 2f;
+
+        Rect srcRect = new Rect(minX, minY, maxX + 1, maxY + 1);
+        RectF dstRect = new RectF(left, top, left + drawW, top + drawH);
+        canvas.drawBitmap(src, srcRect, dstRect, paint);
+
+        return result;
+    }
+
     // ==================== Deterministic Vector Glyphs for HyperOS Apps ====================
 
     public static void drawPhoneGlyph(Canvas canvas, Paint paint, float cx, float cy, float s) {
         canvas.save();
         canvas.translate(cx, cy);
         canvas.rotate(-45);
-        float w = s * 0.28f;
-        float h = s * 0.82f;
+        float w = s * 0.26f;
+        float h = s * 0.80f;
         canvas.drawRoundRect(new RectF(-w, -h/2, w, -h/2 + w * 1.15f), w * 0.45f, w * 0.45f, paint);
         canvas.drawRoundRect(new RectF(-w, h/2 - w * 1.15f, w, h/2), w * 0.45f, w * 0.45f, paint);
         paint.setStyle(Paint.Style.STROKE);
@@ -564,7 +621,7 @@ public class IconThemeEngine {
         canvas.restore();
     }
 
-    // ==================== Render App Icon ====================
+    // ==================== Render App Icon (Complete Plate + Normalized Glyph) ====================
 
     public static Bitmap renderAppIcon(Context context, Drawable icon, int shapeIndex, int themeIndex,
                                       int styleIndex, int opacityPercent, int fillPercent, int size) {
@@ -587,30 +644,31 @@ public class IconThemeEngine {
             canvas.drawPath(path, fillPaint);
         }
 
-        // 2. Icon size & offset
-        int glyphSize = (int) (size * (fillPercent / 100f));
-        glyphSize = Math.max(16, Math.min(size, glyphSize));
-        int offset = (size - glyphSize) / 2;
+        // 2. Optical visual fill fraction (consistent across ALL apps)
+        float visualFill = (fillPercent / 100f) * 0.72f;
+        float gs = size * visualFill;
+        float cx = size / 2f;
+        float cy = size / 2f;
 
         if (styleIndex == 0) {
             // Style 0: «Оригинальные цвета (Стоковые логотипы)»
             if (icon != null) {
+                Bitmap raw = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888);
+                Canvas rawCanvas = new Canvas(raw);
+                icon.setBounds(0, 0, size, size);
+                icon.draw(rawCanvas);
+
+                Bitmap norm = normalizeAndCenterBitmap(raw, size, visualFill);
                 canvas.save();
                 canvas.clipPath(path);
-                icon.setBounds(offset, offset, offset + glyphSize, offset + glyphSize);
-                icon.draw(canvas);
+                canvas.drawBitmap(norm != null ? norm : raw, 0, 0, null);
                 canvas.restore();
             }
             return bitmap;
         }
 
         // Style 1 (Monet) or Style 2 (Pure Black/White)
-        int glyphColor;
-        if (styleIndex == 1) { // Monet
-            glyphColor = getMonetGlyphColor(context);
-        } else { // Pure Black/White
-            glyphColor = 0xFFF1F5F9;
-        }
+        int glyphColor = (styleIndex == 1) ? getMonetGlyphColor(context) : 0xFFF1F5F9;
 
         String p = (pkg != null) ? pkg.toLowerCase() : "";
         String c = (cls != null) ? cls.toLowerCase() : "";
@@ -618,10 +676,6 @@ public class IconThemeEngine {
         Paint glyphPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         glyphPaint.setColor(glyphColor);
         glyphPaint.setStyle(Paint.Style.FILL);
-
-        float cx = size / 2f;
-        float cy = size / 2f;
-        float gs = glyphSize;
 
         // Recognized System Apps & Top Apps -> 100% deterministic vector glyphs!
         if (c.contains("twelvekeydialer") || c.contains("dialtacts") || p.contains("dialer") ||
@@ -699,17 +753,22 @@ public class IconThemeEngine {
 
         if (mono != null) {
             try {
+                Bitmap rawMono = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888);
+                Canvas mc = new Canvas(rawMono);
                 Drawable m = mono.mutate();
                 m.setTint(glyphColor);
-                m.setBounds(offset, offset, offset + glyphSize, offset + glyphSize);
-                m.draw(canvas);
+                m.setBounds(0, 0, size, size);
+                m.draw(mc);
+
+                Bitmap normMono = normalizeAndCenterBitmap(rawMono, size, visualFill);
+                canvas.drawBitmap(normMono != null ? normMono : rawMono, 0, 0, null);
                 return bitmap;
             } catch (Throwable ignored) {}
         }
 
         // Try smart extraction on foreground / icon
         try {
-            Bitmap temp = Bitmap.createBitmap(glyphSize, glyphSize, Bitmap.Config.ARGB_8888);
+            Bitmap temp = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888);
             Canvas tempCanvas = new Canvas(temp);
 
             Drawable fg = null;
@@ -717,23 +776,90 @@ public class IconThemeEngine {
                 fg = ((AdaptiveIconDrawable) icon).getForeground();
             }
             if (fg == null) fg = icon;
-            fg.setBounds(0, 0, glyphSize, glyphSize);
+            fg.setBounds(0, 0, size, size);
             fg.draw(tempCanvas);
 
             Bitmap themedMono = extractSmartMonochrome(temp, glyphColor);
             if (themedMono != null) {
-                canvas.drawBitmap(themedMono, offset, offset, null);
+                Bitmap normMono = normalizeAndCenterBitmap(themedMono, size, visualFill);
+                canvas.drawBitmap(normMono != null ? normMono : themedMono, 0, 0, null);
                 return bitmap;
             }
         } catch (Throwable ignored) {}
 
         // Ultimate safe fallback: NEVER leave a blank empty plate!
-        // Render the crisp original stock icon neatly centered and clipped inside the plate!
+        // Render the crisp original stock icon, normalized to the exact same visual fill!
+        Bitmap rawStock = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888);
+        Canvas sc = new Canvas(rawStock);
+        icon.setBounds(0, 0, size, size);
+        icon.draw(sc);
+        Bitmap normStock = normalizeAndCenterBitmap(rawStock, size, visualFill);
+
         canvas.save();
         canvas.clipPath(path);
-        icon.setBounds(offset, offset, offset + glyphSize, offset + glyphSize);
-        icon.draw(canvas);
+        canvas.drawBitmap(normStock != null ? normStock : rawStock, 0, 0, null);
         canvas.restore();
+
+        return bitmap;
+    }
+
+    /**
+     * Renders just the foreground glyph on a transparent canvas (for HyperOS dynamic layered icons: 1.png).
+     */
+    public static Bitmap renderGlyphOnly(Context context, String pkg, String cls,
+                                        int styleIndex, int fillPercent, int size) {
+        Bitmap bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888);
+        Canvas canvas = new Canvas(bitmap);
+
+        float visualFill = (fillPercent / 100f) * 0.72f;
+        float gs = size * visualFill;
+        float cx = size / 2f;
+        float cy = size / 2f;
+
+        int glyphColor = (styleIndex == 1) ? getMonetGlyphColor(context) : 0xFFF1F5F9;
+        Paint glyphPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        glyphPaint.setColor(glyphColor);
+        glyphPaint.setStyle(Paint.Style.FILL);
+
+        String p = (pkg != null) ? pkg.toLowerCase() : "";
+        String c = (cls != null) ? cls.toLowerCase() : "";
+
+        if (c.contains("twelvekeydialer") || c.contains("dialtacts") || p.contains("dialer") ||
+                (p.contains("contacts") && (c.contains("dial") || c.contains("twelve") || c.contains("call")))) {
+            drawPhoneGlyph(canvas, glyphPaint, cx, cy, gs);
+        } else if (p.contains("contacts") && (c.contains("people") || c.contains("contact"))) {
+            drawContactsGlyph(canvas, glyphPaint, cx, cy, gs);
+        } else if (p.contains("camera")) {
+            drawCameraGlyph(canvas, glyphPaint, cx, cy, gs);
+        } else if (p.contains("mms") || p.contains("messaging")) {
+            drawMessagesGlyph(canvas, glyphPaint, cx, cy, gs);
+        } else if (p.contains("settings")) {
+            drawSettingsGlyph(canvas, glyphPaint, cx, cy, gs);
+        } else if (p.contains("gallery")) {
+            drawGalleryGlyph(canvas, glyphPaint, cx, cy, gs);
+        } else if (p.contains("deskclock") || p.contains("clock")) {
+            drawClockGlyph(canvas, glyphPaint, cx, cy, gs);
+        } else if (p.contains("calendar")) {
+            drawCalendarGlyph(canvas, glyphPaint, cx, cy, gs);
+        } else if (p.contains("calculator")) {
+            drawCalculatorGlyph(canvas, glyphPaint, cx, cy, gs);
+        } else if (p.contains("notes")) {
+            drawNotesGlyph(canvas, glyphPaint, cx, cy, gs);
+        } else if (p.contains("weather")) {
+            drawWeatherGlyph(canvas, glyphPaint, cx, cy, gs);
+        } else if (p.contains("security") || p.contains("cleaner") || p.contains("cleanmaster")) {
+            drawSecurityGlyph(canvas, glyphPaint, cx, cy, gs);
+        } else if (p.contains("fileexplorer") || p.contains("files") || p.contains("documentsui")) {
+            drawFolderGlyph(canvas, glyphPaint, cx, cy, gs);
+        } else if (p.contains("music") || p.contains("player")) {
+            drawMusicGlyph(canvas, glyphPaint, cx, cy, gs);
+        } else if (p.contains("soundrecorder") || p.contains("recorder")) {
+            drawRecorderGlyph(canvas, glyphPaint, cx, cy, gs);
+        } else if (p.contains("compass")) {
+            drawCompassGlyph(canvas, glyphPaint, cx, cy, gs);
+        } else if (p.contains("browser") || p.contains("chrome")) {
+            drawBrowserGlyph(canvas, glyphPaint, cx, cy, gs);
+        }
 
         return bitmap;
     }
@@ -823,7 +949,7 @@ public class IconThemeEngine {
             return result;
         }
 
-        // Return null so the caller uses the crisp stock icon fallback
+        // Return null to trigger the safe stock fallback
         return null;
     }
 
@@ -834,7 +960,9 @@ public class IconThemeEngine {
         File outFile = new File(context.getCacheDir(), "hyperos_icons.zip");
         if (outFile.exists()) outFile.delete();
 
-        int size = 235; // Standard HyperOS / MIUI icon size
+        int size = 235; // Standard flat icon size
+        int layerSize = 351; // Standard HyperOS dynamic layer size
+
         Bitmap plateBitmap = createPlateBitmap(context, shapeIndex, themeIndex, opacityPercent, size);
         Bitmap maskBitmap = createMaskBitmap(shapeIndex, size);
         Bitmap emptyBitmap = Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_8888);
@@ -848,6 +976,12 @@ public class IconThemeEngine {
         ByteArrayOutputStream emptyBytes = new ByteArrayOutputStream();
         emptyBitmap.compress(Bitmap.CompressFormat.PNG, 100, emptyBytes);
 
+        // 351x351 plate for dynamic layer 0.png
+        Bitmap plate351 = createPlateBitmap(context, shapeIndex, themeIndex, opacityPercent, layerSize);
+        ByteArrayOutputStream plate351Stream = new ByteArrayOutputStream();
+        plate351.compress(Bitmap.CompressFormat.PNG, 100, plate351Stream);
+        byte[] plate351Bytes = plate351Stream.toByteArray();
+
         ZipOutputStream zos = new ZipOutputStream(new BufferedOutputStream(new FileOutputStream(outFile)));
         Set<String> added = new HashSet<String>();
 
@@ -860,16 +994,55 @@ public class IconThemeEngine {
         writeZipEntry(zos, "icon_folder_light.png", plateBytes.toByteArray(), added);
         writeZipEntry(zos, "sym_def_app_icon.png", plateBytes.toByteArray(), added);
 
+        // transform_config.xml:
+        // SupportLayerIcon=true: HyperOS loads 0.png (plate) and 1.png (glyph) for dynamic apps
+        // UseDynamicIcon=false: Disables live animated MAML scripts so our Monet clock & calendar display cleanly!
         String svgPath = SHAPE_SVG_PATHS[Math.min(shapeIndex, SHAPE_SVG_PATHS.length - 1)];
         String xmlConfig = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" +
                 "<IconTransform>\n" +
                 "    <Config name=\"SupportLayerIcon\" value=\"true\" />\n" +
-                "    <Config name=\"UseDynamicIcon\" value=\"true\" />\n" +
+                "    <Config name=\"UseDynamicIcon\" value=\"false\" />\n" +
                 "    <Config name=\"ConfigIconMask\" value=\"" + svgPath + "\" />\n" +
                 "</IconTransform>";
         writeZipEntry(zos, "transform_config.xml", xmlConfig.getBytes("UTF-8"), added);
 
-        // 1b. DEDICATED HYPEROS PHONE / DIALER - Must be registered first under all aliases!
+        // 2. DYNAMIC / LAYERED ICONS for Xiaomi Apps (dynamic/<pkg>/0.png and 1.png)
+        // This solves Dialer, Clock, Calendar, etc. not applying on HyperOS!
+        String[][] dynamicApps = {
+                {"com.android.contacts", "com.android.contacts.activities.TwelveKeyDialer"},
+                {"com.android.contacts.activities.TwelveKeyDialer", "com.android.contacts.activities.TwelveKeyDialer"},
+                {"com.android.deskclock", "com.android.deskclock.DeskClockTabActivity"},
+                {"com.xiaomi.calendar", "com.android.calendar.homepage.AllInOneActivity"},
+                {"com.android.calendar", "com.android.calendar.homepage.AllInOneActivity"},
+                {"com.android.camera", "com.android.camera.Camera"},
+                {"com.miui.gallery", "com.miui.gallery.activity.HomePageActivity"},
+                {"com.android.settings", "com.android.settings.MainSettings"},
+                {"com.miui.weather2", "com.miui.weather2.ActivityWeatherCycle"},
+                {"com.miui.notes", "com.miui.notes.ui.NotesListActivity"},
+                {"com.miui.calculator", "com.miui.calculator.cal.CalculatorActivity"},
+                {"com.miui.securitycenter", "com.miui.securityscan.MainActivity"},
+                {"com.android.fileexplorer", "com.android.fileexplorer.FileExplorerTabActivity"},
+                {"com.mi.android.globalFileexplorer", "com.android.fileexplorer.FileExplorerTabActivity"},
+                {"com.android.mms", "com.android.mms.ui.MmsTabActivity"},
+                {"com.android.browser", "com.android.browser.BrowserActivity"},
+                {"com.mi.globalbrowser", "com.android.browser.BrowserActivity"},
+                {"com.miui.player", "com.miui.player.ui.MusicBrowserActivity"},
+                {"com.android.soundrecorder", "com.android.soundrecorder.SoundRecorder"},
+                {"com.miui.compass", "com.miui.compass.CompassActivity"},
+                {"sym_def_app_icon", null}
+        };
+
+        for (String[] da : dynamicApps) {
+            String pkg = da[0];
+            String cls = da[1];
+            Bitmap glyph = null;
+            if (cls != null) {
+                glyph = renderGlyphOnly(context, pkg, cls, styleIndex, fillPercent, layerSize);
+            }
+            writeDynamicLayer(zos, pkg, plate351Bytes, glyph, added);
+        }
+
+        // 3. FLAT ICONS: Pre-generate dedicated Phone / Dialer icon
         Bitmap phoneIcon = renderAppIcon(context, null, "com.android.contacts", "com.android.contacts.activities.TwelveKeyDialer",
                 shapeIndex, themeIndex, styleIndex, opacityPercent, fillPercent, size);
         ByteArrayOutputStream phoneStream = new ByteArrayOutputStream();
@@ -901,9 +1074,36 @@ public class IconThemeEngine {
         writeZipEntry(zos, "com.google.android.dialer.png", phoneBytes, added);
         writeZipEntry(zos, "com.google.android.dialer", phoneBytes, added);
 
+        // Pre-generate Clock and Calendar flat entries
+        Bitmap clockIcon = renderAppIcon(context, null, "com.android.deskclock", "com.android.deskclock.DeskClockTabActivity",
+                shapeIndex, themeIndex, styleIndex, opacityPercent, fillPercent, size);
+        ByteArrayOutputStream clockStream = new ByteArrayOutputStream();
+        clockIcon.compress(Bitmap.CompressFormat.PNG, 100, clockStream);
+        byte[] clockBytes = clockStream.toByteArray();
+        writeZipEntry(zos, "com.android.deskclock.png", clockBytes, added);
+        writeZipEntry(zos, "com.android.deskclock", clockBytes, added);
+        writeZipEntry(zos, "deskclock.png", clockBytes, added);
+        writeZipEntry(zos, "deskclock", clockBytes, added);
+        writeZipEntry(zos, "clock.png", clockBytes, added);
+        writeZipEntry(zos, "clock", clockBytes, added);
+        writeZipEntry(zos, "com.android.deskclock/.DeskClockTabActivity.png", clockBytes, added);
+        writeZipEntry(zos, "com.android.deskclock/.DeskClockTabActivity", clockBytes, added);
+
+        Bitmap calIcon = renderAppIcon(context, null, "com.xiaomi.calendar", "com.android.calendar.homepage.AllInOneActivity",
+                shapeIndex, themeIndex, styleIndex, opacityPercent, fillPercent, size);
+        ByteArrayOutputStream calStream = new ByteArrayOutputStream();
+        calIcon.compress(Bitmap.CompressFormat.PNG, 100, calStream);
+        byte[] calBytes = calStream.toByteArray();
+        writeZipEntry(zos, "com.xiaomi.calendar.png", calBytes, added);
+        writeZipEntry(zos, "com.xiaomi.calendar", calBytes, added);
+        writeZipEntry(zos, "com.android.calendar.png", calBytes, added);
+        writeZipEntry(zos, "com.android.calendar", calBytes, added);
+        writeZipEntry(zos, "calendar.png", calBytes, added);
+        writeZipEntry(zos, "calendar", calBytes, added);
+
         PackageManager pm = context.getPackageManager();
 
-        // 2. Query ALL installed launcher applications on the device
+        // 4. Query ALL installed launcher applications on the device
         Intent mainIntent = new Intent(Intent.ACTION_MAIN, null);
         mainIntent.addCategory(Intent.CATEGORY_LAUNCHER);
         List<ResolveInfo> apps = pm.queryIntentActivities(mainIntent, 0);
@@ -927,7 +1127,7 @@ public class IconThemeEngine {
             }
         }
 
-        // 3. Explicitly ensure core HyperOS / MIUI system packages are included
+        // 5. Explicitly ensure core HyperOS / MIUI system packages are included
         String[] criticalPkgs = {
                 "com.android.contacts",
                 "com.google.android.dialer",
@@ -974,6 +1174,22 @@ public class IconThemeEngine {
 
         zos.close();
         return outFile;
+    }
+
+    private static void writeDynamicLayer(ZipOutputStream zos, String pkg, byte[] plateBytes,
+                                          Bitmap glyphLayer, Set<String> added) throws IOException {
+        writeZipEntry(zos, "dynamic/" + pkg + "/0.png", plateBytes, added);
+        if (glyphLayer != null) {
+            ByteArrayOutputStream s = new ByteArrayOutputStream();
+            glyphLayer.compress(Bitmap.CompressFormat.PNG, 100, s);
+            writeZipEntry(zos, "dynamic/" + pkg + "/1.png", s.toByteArray(), added);
+        } else {
+            // Empty transparent layer
+            Bitmap empty = Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_8888);
+            ByteArrayOutputStream s = new ByteArrayOutputStream();
+            empty.compress(Bitmap.CompressFormat.PNG, 100, s);
+            writeZipEntry(zos, "dynamic/" + pkg + "/1.png", s.toByteArray(), added);
+        }
     }
 
     private static void writeAppEntries(ZipOutputStream zos, byte[] iconBytes, String pkg, String cls,

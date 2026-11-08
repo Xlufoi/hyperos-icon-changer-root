@@ -245,6 +245,8 @@ public class MainActivity extends Activity {
                             "rm -rf /data/system/theme/icons_cache* 2>/dev/null ; " +
                             "rm -rf /data/system/theme/customized_icons* 2>/dev/null ; " +
                             "rm -rf /data/system/customized_icons* 2>/dev/null ; " +
+                            "rm -rf /data/system/theme/dynamicicons* 2>/dev/null ; " +
+                            "rm -rf /data/system/theme/dynamic_icons* 2>/dev/null ; " +
                             "rm -rf /data/user_de/0/com.mi.android.globallauncher/cache/* 2>/dev/null ; " +
                             "rm -rf /data/user/0/com.mi.android.globallauncher/cache/* 2>/dev/null ; " +
                             "rm -rf /data/user_de/0/com.mi.android.globallauncher/files/*icon* 2>/dev/null ; " +
@@ -303,6 +305,8 @@ public class MainActivity extends Activity {
                         "rm -rf /data/system/theme/icons_cache* 2>/dev/null ; " +
                         "rm -rf /data/system/theme/customized_icons* 2>/dev/null ; " +
                         "rm -rf /data/system/customized_icons* 2>/dev/null ; " +
+                        "rm -rf /data/system/theme/dynamicicons* 2>/dev/null ; " +
+                        "rm -rf /data/system/theme/dynamic_icons* 2>/dev/null ; " +
                         "rm -rf /data/user_de/0/com.mi.android.globallauncher/cache/* 2>/dev/null ; " +
                         "rm -rf /data/user/0/com.mi.android.globallauncher/cache/* 2>/dev/null ; " +
                         "rm -rf /data/user_de/0/com.mi.android.globallauncher/files/*icon* 2>/dev/null ; " +
