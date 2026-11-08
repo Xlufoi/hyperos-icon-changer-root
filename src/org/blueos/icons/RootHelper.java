@@ -38,7 +38,7 @@ public class RootHelper {
             DataOutputStream os = new DataOutputStream(p.getOutputStream());
             os.writeBytes(cmd + "\nexit\n");
             os.flush();
-            boolean finished = p.waitFor(5, TimeUnit.SECONDS);
+            boolean finished = p.waitFor(15, TimeUnit.SECONDS);
             return finished && p.exitValue() == 0;
         } catch (Throwable t) {
             Log.e(TAG, "Root command failed: " + cmd, t);
