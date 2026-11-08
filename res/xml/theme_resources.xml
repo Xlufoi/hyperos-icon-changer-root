@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<theme>
+    <AppIcon component="com.android.settings/com.android.settings.Settings" image="ic_settings" />
+    <AppIcon component="com.android.phone/com.android.phone.DialtactsActivity" image="ic_phone" />
+    <AppIcon component="com.android.contacts/com.android.contacts.activities.TwelveKeyDialer" image="ic_phone" />
+    <AppIcon component="com.android.contacts/com.android.contacts.activities.PeopleActivity" image="ic_phone" />
+    <AppIcon component="com.android.mms/com.android.mms.ui.MmsTabActivity" image="ic_messages" />
+    <AppIcon component="com.google.android.apps.messaging/com.google.android.apps.messaging.ui.ConversationListActivity" image="ic_messages" />
+    <AppIcon component="com.android.camera/com.android.camera.Camera" image="ic_camera" />
+    <AppIcon component="com.miui.gallery/com.miui.gallery.activity.HomePageActivity" image="ic_gallery" />
+    <AppIcon component="com.google.android.apps.photos/com.google.android.apps.photos.home.HomeActivity" image="ic_gallery" />
+    <AppIcon component="com.android.deskclock/com.android.deskclock.DeskClockTabActivity" image="ic_clock" />
+    <AppIcon component="com.google.android.deskclock/com.android.deskclock.DeskClock" image="ic_clock" />
+    <AppIcon component="com.android.calendar/com.android.calendar.AllInOneActivity" image="ic_calendar" />
+    <AppIcon component="com.xiaomi.calendar/com.xiaomi.calendar.common.event.CalendarTabActivity" image="ic_calendar" />
+    <AppIcon component="com.google.android.calendar/com.android.calendar.LaunchActivity" image="ic_calendar" />
+    <AppIcon component="com.android.fileexplorer/com.android.fileexplorer.FileExplorerTabActivity" image="ic_files" />
+    <AppIcon component="com.mi.android.globalFileexplorer/com.android.fileexplorer.FileExplorerTabActivity" image="ic_files" />
+    <AppIcon component="com.google.android.apps.nbu.files/com.google.android.apps.nbu.files.home.HomeActivity" image="ic_files" />
+    <AppIcon component="com.miui.calculator/com.miui.calculator.cal.CalculatorActivity" image="ic_calculator" />
+    <AppIcon component="com.google.android.calculator/com.android.calculator2.Calculator" image="ic_calculator" />
+    <AppIcon component="com.miui.notes/com.miui.notes.ui.NotesListActivity" image="ic_notes" />
+    <AppIcon component="com.google.android.keep/com.google.android.apps.keep.ui.activities.BrowseActivity" image="ic_notes" />
+    <AppIcon component="com.android.soundrecorder/com.android.soundrecorder.SoundRecorder" image="ic_mic" />
+    <AppIcon component="com.miui.compass/com.miui.compass.CompassActivity" image="ic_compass" />
+    <AppIcon component="com.miui.securitycenter/com.miui.securityscan.MainActivity" image="ic_security" />
+    <AppIcon component="com.miui.weather2/com.miui.weather2.ActivityWeatherMain" image="ic_weather" />
+    <AppIcon component="com.android.chrome/com.google.android.apps.chrome.Main" image="ic_browser" />
+    <AppIcon component="com.android.browser/com.android.browser.BrowserActivity" image="ic_browser" />
+    <AppIcon component="com.mi.globalbrowser/com.android.browser.BrowserActivity" image="ic_browser" />
+    <AppIcon component="com.google.android.youtube/com.google.android.youtube.HomeActivity" image="ic_youtube" />
+    <AppIcon component="com.android.vending/com.android.vending.AssetBrowserActivity" image="ic_playstore" />
+    <AppIcon component="com.google.android.gm/com.google.android.gm.ConversationListActivityGmail" image="ic_gmail" />
+    <AppIcon component="com.google.android.apps.maps/com.google.android.maps.MapsActivity" image="ic_compass" />
+    <AppIcon component="org.telegram.messenger/org.telegram.ui.LaunchActivity" image="ic_telegram" />
+    <AppIcon component="org.telegram.plus/org.telegram.ui.LaunchActivity" image="ic_telegram" />
+    <AppIcon component="com.whatsapp/com.whatsapp.HomeActivity" image="ic_whatsapp" />
+    <AppIcon component="com.discord/com.discord.main.MainActivity" image="ic_discord" />
+    <AppIcon component="com.spotify.music/com.spotify.music.MainActivity" image="ic_spotify" />
+    <AppIcon component="com.vkontakte.android/com.vkontakte.android.MainActivity" image="ic_vk" />
+    <AppIcon component="com.termux/com.termux.app.TermuxActivity" image="ic_termux" />
+    <AppIcon component="com.topjohnwu.magisk/com.topjohnwu.magisk.ui.MainActivity" image="ic_magisk" />
+    <AppIcon component="io.github.a13e300.ksu/io.github.a13e300.ksu.ui.MainActivity" image="ic_magisk" />
+    <AppIcon component="me.bmax.apatch/me.bmax.apatch.ui.MainActivity" image="ic_magisk" />
+    <AppIcon component="org.blueos.widgets/org.blueos.widgets.MainActivity" image="ic_blueos" />
+</theme>
