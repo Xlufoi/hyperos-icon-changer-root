@@ -18,12 +18,20 @@ import java.util.List;
 
 public class MainActivity extends Activity {
 
-    private static final String PREFS_NAME = "blueos_icon_settings";
+    private static final String PREFS_NAME = "hyperos_icon_settings";
     private static final String KEY_SHAPE = "selected_shape";
+    private static final String KEY_STYLE = "selected_style";
     private static final String KEY_THEME = "selected_theme";
+    private static final String KEY_OPACITY = "selected_opacity";
+    private static final String KEY_FILL = "selected_fill";
 
     private Spinner spinnerShape;
+    private Spinner spinnerStyle;
     private Spinner spinnerTheme;
+    private SeekBar seekbarOpacity;
+    private TextView tvOpacityLabel;
+    private SeekBar seekbarFill;
+    private TextView tvFillLabel;
     private ImageView[] previewIcons;
 
     @Override
@@ -32,7 +40,12 @@ public class MainActivity extends Activity {
         setContentView(R.layout.activity_main);
 
         spinnerShape = findViewById(R.id.spinner_shape);
+        spinnerStyle = findViewById(R.id.spinner_style);
         spinnerTheme = findViewById(R.id.spinner_theme);
+        seekbarOpacity = findViewById(R.id.seekbar_opacity);
+        tvOpacityLabel = findViewById(R.id.tv_opacity_label);
+        seekbarFill = findViewById(R.id.seekbar_fill);
+        tvFillLabel = findViewById(R.id.tv_fill_label);
 
         previewIcons = new ImageView[]{
                 findViewById(R.id.preview_icon1),
@@ -46,15 +59,28 @@ public class MainActivity extends Activity {
                 android.R.layout.simple_spinner_dropdown_item, IconThemeEngine.SHAPES);
         spinnerShape.setAdapter(shapeAdapter);
 
+        ArrayAdapter<String> styleAdapter = new ArrayAdapter<>(this,
+                android.R.layout.simple_spinner_dropdown_item, IconThemeEngine.STYLES);
+        spinnerStyle.setAdapter(styleAdapter);
+
         ArrayAdapter<String> themeAdapter = new ArrayAdapter<>(this,
                 android.R.layout.simple_spinner_dropdown_item, IconThemeEngine.THEMES);
         spinnerTheme.setAdapter(themeAdapter);
 
         SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
         spinnerShape.setSelection(prefs.getInt(KEY_SHAPE, 0)); // Circle
-        spinnerTheme.setSelection(prefs.getInt(KEY_THEME, 0)); // Monet 70%
+        spinnerStyle.setSelection(prefs.getInt(KEY_STYLE, 0)); // Original Colors
+        spinnerTheme.setSelection(prefs.getInt(KEY_THEME, 0)); // Monet
+        int opacity = prefs.getInt(KEY_OPACITY, 70);
+        int fill = prefs.getInt(KEY_FILL, 65);
 
-        AdapterView.OnItemSelectedListener listener = new AdapterView.OnItemSelectedListener() {
+        seekbarOpacity.setProgress(opacity);
+        tvOpacityLabel.setText("Прозрачность подложки: " + opacity + "%");
+
+        seekbarFill.setProgress(fill);
+        tvFillLabel.setText("Заполнение картинки: " + fill + "%");
+
+        AdapterView.OnItemSelectedListener spinnerListener = new AdapterView.OnItemSelectedListener() {
             @Override
             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
                 saveSettings();
@@ -65,8 +91,53 @@ public class MainActivity extends Activity {
             public void onNothingSelected(AdapterView<?> parent) {}
         };
 
-        spinnerShape.setOnItemSelectedListener(listener);
-        spinnerTheme.setOnItemSelectedListener(listener);
+        spinnerShape.setOnItemSelectedListener(spinnerListener);
+        spinnerStyle.setOnItemSelectedListener(spinnerListener);
+        spinnerTheme.setOnItemSelectedListener(spinnerListener);
+
+        seekbarOpacity.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                tvOpacityLabel.setText("Прозрачность подложки: " + progress + "%");
+                if (fromUser) {
+                    saveSettings();
+                    updatePreviews();
+                }
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {}
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {
+                saveSettings();
+                updatePreviews();
+            }
+        });
+
+        seekbarFill.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                if (progress < 30) {
+                    progress = 30;
+                    seekBar.setProgress(30);
+                }
+                tvFillLabel.setText("Заполнение картинки: " + progress + "%");
+                if (fromUser) {
+                    saveSettings();
+                    updatePreviews();
+                }
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {}
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {
+                saveSettings();
+                updatePreviews();
+            }
+        });
 
         Button btnApplyHyperOS = findViewById(R.id.btn_apply_hyperos);
         Button btnRestoreHyperOS = findViewById(R.id.btn_restore_hyperos);
@@ -100,13 +171,19 @@ public class MainActivity extends Activity {
         getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
                 .edit()
                 .putInt(KEY_SHAPE, spinnerShape.getSelectedItemPosition())
+                .putInt(KEY_STYLE, spinnerStyle.getSelectedItemPosition())
                 .putInt(KEY_THEME, spinnerTheme.getSelectedItemPosition())
+                .putInt(KEY_OPACITY, seekbarOpacity.getProgress())
+                .putInt(KEY_FILL, seekbarFill.getProgress())
                 .apply();
     }
 
     private void updatePreviews() {
         int shapeIdx = spinnerShape.getSelectedItemPosition();
+        int styleIdx = spinnerStyle.getSelectedItemPosition();
         int themeIdx = spinnerTheme.getSelectedItemPosition();
+        int opacity = seekbarOpacity.getProgress();
+        int fill = seekbarFill.getProgress();
 
         PackageManager pm = getPackageManager();
         Intent mainIntent = new Intent(Intent.ACTION_MAIN, null);
@@ -124,7 +201,8 @@ public class MainActivity extends Activity {
                 stock = getApplicationInfo().loadIcon(pm);
             }
 
-            Bitmap previewBitmap = IconThemeEngine.renderThemedIcon(this, stock, shapeIdx, themeIdx, 168);
+            Bitmap previewBitmap = IconThemeEngine.renderAppIcon(this, stock, shapeIdx, themeIdx,
+                    styleIdx, opacity, fill, 168);
             previewIcons[i].setBackground(null);
             previewIcons[i].setImageBitmap(previewBitmap);
         }
@@ -132,10 +210,13 @@ public class MainActivity extends Activity {
 
     private void applyHyperOSIcons() {
         final int shapeIdx = spinnerShape.getSelectedItemPosition();
+        final int styleIdx = spinnerStyle.getSelectedItemPosition();
         final int themeIdx = spinnerTheme.getSelectedItemPosition();
+        final int opacity = seekbarOpacity.getProgress();
+        final int fill = seekbarFill.getProgress();
 
         final ProgressDialog dialog = new ProgressDialog(this);
-        dialog.setMessage("Преобразование всех приложений в Themed Icons (Monet)...");
+        dialog.setMessage("Преобразование всех приложений HyperOS...");
         dialog.setCancelable(false);
         dialog.show();
 
@@ -143,7 +224,8 @@ public class MainActivity extends Activity {
             @Override
             public void run() {
                 try {
-                    File customizedZip = IconThemeEngine.buildHyperOSThemeZip(MainActivity.this, shapeIdx, themeIdx);
+                    File customizedZip = IconThemeEngine.buildHyperOSThemeZip(MainActivity.this,
+                            shapeIdx, themeIdx, styleIdx, opacity, fill);
                     String iconsPath = customizedZip.getAbsolutePath();
 
                     String cmd = "mkdir -p /data/system/theme && " +
@@ -171,8 +253,9 @@ public class MainActivity extends Activity {
                             if (ok) {
                                 new AlertDialog.Builder(MainActivity.this)
                                         .setTitle("Успешно!")
-                                        .setMessage("Themed Icons (" + IconThemeEngine.SHAPES[shapeIdx] + ", " +
-                                                IconThemeEngine.THEMES[themeIdx] + ", без обводки) применены на ВСЕ приложения!\nРабочий стол перезапущен.")
+                                        .setMessage("Значки (" + IconThemeEngine.SHAPES[shapeIdx] + ", " +
+                                                IconThemeEngine.STYLES[styleIdx] + ", Прозрачность " + opacity +
+                                                "%, Масштаб " + fill + "%) применены на ВСЕ приложения!\nРабочий стол перезапущен.")
                                         .setPositiveButton("OK", null)
                                         .show();
                             } else {

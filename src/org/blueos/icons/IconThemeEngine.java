@@ -18,7 +18,7 @@ import java.util.zip.ZipOutputStream;
 public class IconThemeEngine {
 
     public static final String[] SHAPES = {
-            "Круг (Circle — BlueOS)",
+            "Круг (Circle — HyperOS)",
             "Сквиркл (Squircle)",
             "Скруглённый квадрат (Rounded Square)",
             "Капля (Teardrop)",
@@ -29,10 +29,14 @@ public class IconThemeEngine {
     };
 
     public static final String[] THEMES = {
-            "Monet Полупрозрачный (70%)",
-            "Черный полупрозрачный (Pure Black 70%)",
-            "Monet Сплошной (100%)",
-            "Черный сплошной (Pure Black 100%)"
+            "Monet (Динамический под обои)",
+            "Черный (Pure Black AMOLED)"
+    };
+
+    public static final String[] STYLES = {
+            "Оригинальные цвета (Стоковые логотипы)",
+            "Themed Monet (AOSP Монохром)",
+            "Themed Черно-белый (Pure Black & White)"
     };
 
     public static final String[] SHAPE_SVG_PATHS = {
@@ -117,30 +121,24 @@ public class IconThemeEngine {
         return path;
     }
 
-    public static int getPlateColor(Context context, int themeIndex) {
-        if (themeIndex == 0) { // Monet 70%
-            int baseRgb = getMonetBaseColor(context);
-            return (baseRgb & 0x00FFFFFF) | (0xB2 << 24); // 70% opacity
-        } else if (themeIndex == 1) { // Pure Black 70%
-            return 0xB2000000; // 70% opacity pure black
-        } else if (themeIndex == 2) { // Monet 100%
-            return 0xFF000000 | getMonetBaseColor(context);
-        } else { // Pure Black 100%
-            return 0xFF000000;
+    public static int getPlateColor(Context context, int themeIndex, int opacityPercent) {
+        int baseRgb;
+        if (themeIndex == 0) { // Monet
+            baseRgb = getMonetBaseColor(context);
+        } else { // Pure Black
+            baseRgb = 0x000000;
         }
+        int alpha = Math.max(0, Math.min(255, (int) (opacityPercent * 255f / 100f)));
+        return (baseRgb & 0x00FFFFFF) | (alpha << 24);
     }
 
-    public static int getGlyphColor(Context context, int themeIndex) {
-        if (themeIndex == 0 || themeIndex == 2) { // Monet
-            try {
-                if (Build.VERSION.SDK_INT >= 31) {
-                    return context.getColor(android.R.color.system_accent1_100);
-                }
-            } catch (Throwable ignored) {}
-            return 0xFFD8E4F8;
-        } else { // Pure Black
-            return 0xFFF1F5F9;
-        }
+    public static int getMonetGlyphColor(Context context) {
+        try {
+            if (Build.VERSION.SDK_INT >= 31) {
+                return context.getColor(android.R.color.system_accent1_100);
+            }
+        } catch (Throwable ignored) {}
+        return 0xFFD8E4F8;
     }
 
     private static int getMonetBaseColor(Context context) {
@@ -172,17 +170,19 @@ public class IconThemeEngine {
         return 0xFF1E293B;
     }
 
-    public static Bitmap createPlateBitmap(Context context, int shapeIndex, int themeIndex, int size) {
+    public static Bitmap createPlateBitmap(Context context, int shapeIndex, int themeIndex, int opacityPercent, int size) {
         Bitmap bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888);
         Canvas canvas = new Canvas(bitmap);
 
         Path path = createShapePath(shapeIndex, size, size);
-        Paint fillPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        fillPaint.setColor(getPlateColor(context, themeIndex));
-        fillPaint.setStyle(Paint.Style.FILL);
-        canvas.drawPath(path, fillPaint);
-        // NO BORDER / NO OUTLINE
-
+        int plateColor = getPlateColor(context, themeIndex, opacityPercent);
+        if (Color.alpha(plateColor) > 0) {
+            Paint fillPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+            fillPaint.setColor(plateColor);
+            fillPaint.setStyle(Paint.Style.FILL);
+            canvas.drawPath(path, fillPaint);
+        }
+        // No borders / no stroke
         return bitmap;
     }
 
@@ -197,22 +197,49 @@ public class IconThemeEngine {
         return bitmap;
     }
 
-    public static Bitmap renderThemedIcon(Context context, Drawable icon, int shapeIndex, int themeIndex, int size) {
+    public static Bitmap renderAppIcon(Context context, Drawable icon, int shapeIndex, int themeIndex,
+                                      int styleIndex, int opacityPercent, int fillPercent, int size) {
         Bitmap bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888);
         Canvas canvas = new Canvas(bitmap);
 
-        // 1. Plate: clean flat 70% semi-transparent plate (NO BORDER)
+        // 1. Draw Plate (no borders)
         Path path = createShapePath(shapeIndex, size, size);
-        Paint fillPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        fillPaint.setColor(getPlateColor(context, themeIndex));
-        fillPaint.setStyle(Paint.Style.FILL);
-        canvas.drawPath(path, fillPaint);
+        int plateColor = getPlateColor(context, themeIndex, opacityPercent);
+        if (Color.alpha(plateColor) > 0) {
+            Paint fillPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+            fillPaint.setColor(plateColor);
+            fillPaint.setStyle(Paint.Style.FILL);
+            canvas.drawPath(path, fillPaint);
+        }
 
-        // 2. Render AOSP Themed Glyph
-        int glyphColor = getGlyphColor(context, themeIndex);
-        int glyphSize = (int) (size * 0.54f);
+        if (icon == null) return bitmap;
+
+        // 2. Icon size & offset
+        int glyphSize = (int) (size * (fillPercent / 100f));
+        glyphSize = Math.max(16, Math.min(size, glyphSize));
         int offset = (size - glyphSize) / 2;
 
+        if (styleIndex == 0) {
+            // «Оригинальные цвета (Стоковые логотипы)»
+            canvas.save();
+            if (fillPercent >= 75) {
+                canvas.clipPath(path);
+            }
+            icon.setBounds(offset, offset, offset + glyphSize, offset + glyphSize);
+            icon.draw(canvas);
+            canvas.restore();
+            return bitmap;
+        }
+
+        // 3. Themed Monochrome (Style 1: Monet, Style 2: Black/White)
+        int glyphColor;
+        if (styleIndex == 1) { // Monet
+            glyphColor = getMonetGlyphColor(context);
+        } else { // Pure Black/White
+            glyphColor = 0xFFF1F5F9;
+        }
+
+        // Check official monochrome
         Drawable mono = null;
         if (Build.VERSION.SDK_INT >= 33 && icon instanceof AdaptiveIconDrawable) {
             try {
@@ -230,45 +257,102 @@ public class IconThemeEngine {
             } catch (Throwable ignored) {}
         }
 
-        // Convert stock icon/foreground to monochrome silhouette
-        if (icon != null) {
-            try {
-                Bitmap temp = Bitmap.createBitmap(glyphSize, glyphSize, Bitmap.Config.ARGB_8888);
-                Canvas tempCanvas = new Canvas(temp);
+        // Fallback: smart glyph extraction (prevents "битый окрас")
+        try {
+            Bitmap temp = Bitmap.createBitmap(glyphSize, glyphSize, Bitmap.Config.ARGB_8888);
+            Canvas tempCanvas = new Canvas(temp);
 
-                Drawable fg = null;
-                if (icon instanceof AdaptiveIconDrawable) {
-                    fg = ((AdaptiveIconDrawable) icon).getForeground();
-                }
-                if (fg == null) fg = icon;
-                fg.setBounds(0, 0, glyphSize, glyphSize);
-                fg.draw(tempCanvas);
+            Drawable fg = null;
+            if (icon instanceof AdaptiveIconDrawable) {
+                fg = ((AdaptiveIconDrawable) icon).getForeground();
+            }
+            if (fg == null) fg = icon;
+            fg.setBounds(0, 0, glyphSize, glyphSize);
+            fg.draw(tempCanvas);
 
-                Bitmap monoBitmap = convertBitmapToThemedMonochrome(temp, glyphColor);
-                canvas.drawBitmap(monoBitmap, offset, offset, null);
-            } catch (Throwable ignored) {}
-        }
+            Bitmap themedMono = extractSmartMonochrome(temp, glyphColor);
+            canvas.drawBitmap(themedMono, offset, offset, null);
+        } catch (Throwable ignored) {}
 
         return bitmap;
     }
 
-    private static Bitmap convertBitmapToThemedMonochrome(Bitmap src, int tintColor) {
-        Bitmap result = Bitmap.createBitmap(src.getWidth(), src.getHeight(), Bitmap.Config.ARGB_8888);
-        Canvas c = new Canvas(result);
+    private static Bitmap extractSmartMonochrome(Bitmap src, int tintColor) {
+        int w = src.getWidth();
+        int h = src.getHeight();
+        Bitmap result = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
+        int[] pixels = new int[w * h];
+        src.getPixels(pixels, 0, w, 0, 0, w, h);
 
-        Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG);
-        paint.setColorFilter(new PorterDuffColorFilter(tintColor, PorterDuff.Mode.SRC_IN));
-        c.drawBitmap(src, 0, 0, paint);
+        int tr = Color.red(tintColor);
+        int tg = Color.green(tintColor);
+        int tb = Color.blue(tintColor);
 
+        // Check corners to detect if there is a solid background container
+        int c1 = pixels[0];
+        int c2 = pixels[w - 1];
+        int c3 = pixels[(h - 1) * w];
+        int c4 = pixels[w * h - 1];
+
+        int a1 = (c1 >>> 24) & 0xff;
+        int a2 = (c2 >>> 24) & 0xff;
+        int a3 = (c3 >>> 24) & 0xff;
+        int a4 = (c4 >>> 24) & 0xff;
+
+        boolean hasSolidBg = (a1 > 128 && a2 > 128 && a3 > 128 && a4 > 128);
+
+        if (!hasSolidBg) {
+            // Already a transparent-backed glyph/logo
+            for (int i = 0; i < pixels.length; i++) {
+                int a = (pixels[i] >>> 24) & 0xff;
+                if (a > 0) {
+                    pixels[i] = (a << 24) | (tr << 16) | (tg << 8) | tb;
+                }
+            }
+        } else {
+            // Solid background container detected (Dialer, Gallery, Block Blast, etc.)
+            // Background color is estimated from corners
+            int bgR = (((c1 >> 16) & 0xff) + ((c2 >> 16) & 0xff) + ((c3 >> 16) & 0xff) + ((c4 >> 16) & 0xff)) / 4;
+            int bgG = (((c1 >> 8) & 0xff) + ((c2 >> 8) & 0xff) + ((c3 >> 8) & 0xff) + ((c4 >> 8) & 0xff)) / 4;
+            int bgB = ((c1 & 0xff) + (c2 & 0xff) + (c3 & 0xff) + (c4 & 0xff)) / 4;
+
+            for (int i = 0; i < pixels.length; i++) {
+                int p = pixels[i];
+                int a = (p >>> 24) & 0xff;
+                if (a == 0) continue;
+
+                int pr = (p >> 16) & 0xff;
+                int pg = (p >> 8) & 0xff;
+                int pb = p & 0xff;
+
+                int dr = Math.abs(pr - bgR);
+                int dg = Math.abs(pg - bgG);
+                int db = Math.abs(pb - bgB);
+                int diff = dr + dg + db; // 0..765
+
+                if (diff < 45) {
+                    // Background pixel -> make transparent
+                    pixels[i] = 0;
+                } else {
+                    // Foreground symbol (handset, flower lines, etc.)
+                    int symbolAlpha = Math.min(255, (diff - 45) * 5);
+                    int finalAlpha = (a * symbolAlpha) / 255;
+                    pixels[i] = (finalAlpha << 24) | (tr << 16) | (tg << 8) | tb;
+                }
+            }
+        }
+
+        result.setPixels(pixels, 0, w, 0, 0, w, h);
         return result;
     }
 
-    public static File buildHyperOSThemeZip(Context context, int shapeIndex, int themeIndex) throws Exception {
+    public static File buildHyperOSThemeZip(Context context, int shapeIndex, int themeIndex,
+                                           int styleIndex, int opacityPercent, int fillPercent) throws Exception {
         File outFile = new File(context.getCacheDir(), "hyperos_icons.zip");
         if (outFile.exists()) outFile.delete();
 
         int size = 235;
-        Bitmap plateBitmap = createPlateBitmap(context, shapeIndex, themeIndex, 168);
+        Bitmap plateBitmap = createPlateBitmap(context, shapeIndex, themeIndex, opacityPercent, 168);
         Bitmap maskBitmap = createMaskBitmap(shapeIndex, 168);
         Bitmap emptyBitmap = Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_8888);
 
@@ -312,7 +396,8 @@ public class IconThemeEngine {
                 String cls = info.activityInfo.name;
                 Drawable stockIcon = info.loadIcon(pm);
 
-                Bitmap themedBitmap = renderThemedIcon(context, stockIcon, shapeIndex, themeIndex, size);
+                Bitmap themedBitmap = renderAppIcon(context, stockIcon, shapeIndex, themeIndex,
+                        styleIndex, opacityPercent, fillPercent, size);
                 ByteArrayOutputStream iconStream = new ByteArrayOutputStream();
                 themedBitmap.compress(Bitmap.CompressFormat.PNG, 100, iconStream);
                 byte[] iconBytes = iconStream.toByteArray();

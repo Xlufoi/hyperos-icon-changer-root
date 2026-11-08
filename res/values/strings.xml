@@ -1,16 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">BlueOS Icons</string>
-    <string name="theme_title">BlueOS Translucent Glass Icons</string>
-    <string name="theme_desc">Порт полупрозрачных стеклянных значков BlueOS для HyperOS и Android</string>
+    <string name="app_name">HyperOS Icons</string>
+    <string name="theme_title">HyperOS Icon Changer (Root)</string>
+    <string name="theme_desc">Кастомизация значков HyperOS без ThemeManager</string>
     <string name="section_hyperos">Установка в HyperOS</string>
     <string name="section_hyperos_sub">Работает напрямую без приложения Темы (ThemeManager)</string>
     <string name="btn_apply_hyperos">Применить в HyperOS (Root / 1 тап)</string>
     <string name="btn_restore_hyperos">Вернуть стандартные значки</string>
     <string name="section_launchers">Сторонние лаунчеры</string>
     <string name="btn_apply_launcher">Применить в лаунчере (Icon Pack)</string>
-    <string name="section_magisk">Модуль Magisk / KernelSU</string>
-    <string name="msg_applied">Значки BlueOS успешно применены! Лаунчер перезапущен.</string>
+    <string name="msg_applied">Значки успешно применены! Рабочий стол перезапущен.</string>
     <string name="msg_restored">Стандартные значки восстановлены.</string>
     <string name="msg_root_error">Требуются права Root для прямой установки в HyperOS.</string>
 </resources>

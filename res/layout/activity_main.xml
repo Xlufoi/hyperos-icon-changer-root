@@ -15,7 +15,7 @@
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="@string/theme_title"
+            android:text="HyperOS Icon Changer"
             android:textColor="@color/text_primary"
             android:textSize="22sp"
             android:textStyle="bold"
@@ -24,7 +24,7 @@
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Полупрозрачные (70%) Monet значки из BlueOS. Настройка форм из AOSP."
+            android:text="Кастомизация значков HyperOS: AOSP формы, Monet, прозрачность и масштаб"
             android:textColor="@color/text_secondary"
             android:textSize="13sp"
             android:layout_marginTop="4dp"
@@ -43,7 +43,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="ПРЕДПРОСМОТР ЗНАЧКОВ"
+                android:text="ЖИВОЙ ПРЕДПРОСМОТР"
                 android:textColor="@color/accent_blue"
                 android:textSize="11sp"
                 android:textStyle="bold"
@@ -87,7 +87,7 @@
             </LinearLayout>
         </LinearLayout>
 
-        <!-- Customization Card (Shapes & Themes) -->
+        <!-- Customization Card -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -115,11 +115,30 @@
                 android:paddingStart="12dp"
                 android:paddingEnd="12dp" />
 
+            <!-- Icon Style selector -->
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Стиль картинки значка:"
+                android:textColor="@color/text_primary"
+                android:textSize="14sp"
+                android:textStyle="bold" />
+
+            <Spinner
+                android:id="@+id/spinner_style"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:background="@color/btn_secondary"
+                android:layout_marginTop="8dp"
+                android:layout_marginBottom="16dp"
+                android:paddingStart="12dp"
+                android:paddingEnd="12dp" />
+
             <!-- Palette selector -->
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Цветовая палитра:"
+                android:text="Цвет подложки:"
                 android:textColor="@color/text_primary"
                 android:textSize="14sp"
                 android:textStyle="bold" />
@@ -130,8 +149,46 @@
                 android:layout_height="48dp"
                 android:background="@color/btn_secondary"
                 android:layout_marginTop="8dp"
+                android:layout_marginBottom="16dp"
                 android:paddingStart="12dp"
                 android:paddingEnd="12dp" />
+
+            <!-- Opacity Slider -->
+            <TextView
+                android:id="@+id/tv_opacity_label"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Прозрачность подложки: 70%"
+                android:textColor="@color/text_primary"
+                android:textSize="14sp"
+                android:textStyle="bold" />
+
+            <SeekBar
+                android:id="@+id/seekbar_opacity"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:max="100"
+                android:progress="70"
+                android:layout_marginTop="6dp"
+                android:layout_marginBottom="16dp" />
+
+            <!-- Fill / Scale Slider -->
+            <TextView
+                android:id="@+id/tv_fill_label"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Заполнение картинки: 65%"
+                android:textColor="@color/text_primary"
+                android:textSize="14sp"
+                android:textStyle="bold" />
+
+            <SeekBar
+                android:id="@+id/seekbar_fill"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:max="100"
+                android:progress="65"
+                android:layout_marginTop="6dp" />
         </LinearLayout>
 
         <!-- HyperOS Apply Card -->
@@ -154,7 +211,7 @@
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Применяет выбранную форму и Monet 70% на ВСЕ приложения в HyperOS (без ThemeManager)"
+                android:text="Применяет выбранные форму, стиль, масштаб и прозрачность на ВСЕ приложения в HyperOS (Root)"
                 android:textColor="@color/text_secondary"
                 android:textSize="12sp"
                 android:layout_marginTop="4dp"
@@ -215,31 +272,6 @@
                 android:textColor="@color/text_primary"
                 android:textSize="14sp"
                 android:background="@color/btn_secondary" />
-        </LinearLayout>
-
-        <!-- Magisk Info Card -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:background="@color/card_bg"
-            android:padding="16dp">
-
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="@string/section_magisk"
-                android:textColor="@color/text_primary"
-                android:textSize="15sp"
-                android:textStyle="bold" />
-
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="Модуль сохранён в /sdcard/Download/BlueOS_HyperOS/BlueOS-Glass-Icons-Module.zip"
-                android:textColor="@color/text_secondary"
-                android:textSize="12sp"
-                android:layout_marginTop="4dp" />
         </LinearLayout>
 
     </LinearLayout>

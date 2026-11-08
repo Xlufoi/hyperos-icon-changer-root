@@ -1,6 +1,6 @@
 #!/data/data/com.termux/files/usr/bin/bash
 set -e
-cd ~/BlueOSIconsApp
+cd ~/HyperOSIconChanger
 ANDROID_JAR=~/android-sdk/android.jar
 
 echo "1. Generating R.java..."
@@ -34,6 +34,8 @@ cd ..
 
 echo "5. Signing APK..."
 mkdir -p /sdcard/Download/BlueOS_HyperOS
-apksigner sign --ks ~/debug.keystore --ks-pass pass:android --out /sdcard/Download/BlueOS_HyperOS/BlueOS-Glass-Icons.apk bin/unsigned.apk
+OUT_APK=/sdcard/Download/BlueOS_HyperOS/HyperOS-Icon-Changer.apk
+apksigner sign --ks ~/debug.keystore --ks-pass pass:android --out "$OUT_APK" bin/unsigned.apk
+cp -f "$OUT_APK" /sdcard/Download/BlueOS_HyperOS/BlueOS-Glass-Icons.apk
 
-echo "Done! Output: /sdcard/Download/BlueOS_HyperOS/BlueOS-Glass-Icons.apk"
+echo "Done! Output: $OUT_APK"
