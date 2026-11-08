@@ -124,8 +124,8 @@ public class MainActivity extends Activity {
                 stock = getApplicationInfo().loadIcon(pm);
             }
 
-            Bitmap previewBitmap = IconThemeEngine.renderAppIconWithStock(this, stock, shapeIdx, themeIdx, 168);
-            previewIcons[i].setBackground(null); // clear background to eliminate overlaying
+            Bitmap previewBitmap = IconThemeEngine.renderThemedIcon(this, stock, shapeIdx, themeIdx, 168);
+            previewIcons[i].setBackground(null);
             previewIcons[i].setImageBitmap(previewBitmap);
         }
     }
@@ -135,7 +135,7 @@ public class MainActivity extends Activity {
         final int themeIdx = spinnerTheme.getSelectedItemPosition();
 
         final ProgressDialog dialog = new ProgressDialog(this);
-        dialog.setMessage("Сборка значков для всех установленных приложений...");
+        dialog.setMessage("Преобразование всех приложений в Themed Icons (Monet)...");
         dialog.setCancelable(false);
         dialog.show();
 
@@ -150,9 +150,18 @@ public class MainActivity extends Activity {
                             "cp -f " + iconsPath + " /data/system/theme/icons && " +
                             "chmod 644 /data/system/theme/icons && " +
                             "chown 1000:1000 /data/system/theme/icons 2>/dev/null || chown system:system /data/system/theme/icons 2>/dev/null ; " +
-                            "rm -rf /data/system/theme/.runtime/icons* /data/system/theme/icons_cache* 2>/dev/null ; " +
-                            "rm -rf /data/user_de/0/com.mi.android.globallauncher/cache/* /data/user/0/com.mi.android.globallauncher/cache/* 2>/dev/null ; " +
-                            "pkill -f com.mi.android.globallauncher ; am force-stop com.mi.android.globallauncher";
+                            "rm -rf /data/system/theme/.runtime/* 2>/dev/null ; " +
+                            "rm -rf /data/system/theme/icons_cache* 2>/dev/null ; " +
+                            "rm -rf /data/user_de/0/com.mi.android.globallauncher/cache/* 2>/dev/null ; " +
+                            "rm -rf /data/user/0/com.mi.android.globallauncher/cache/* 2>/dev/null ; " +
+                            "rm -rf /data/user_de/0/com.mi.android.globallauncher/databases/*icon* 2>/dev/null ; " +
+                            "rm -rf /data/user/0/com.mi.android.globallauncher/databases/*icon* 2>/dev/null ; " +
+                            "rm -rf /data/user_de/0/com.miui.home/cache/* 2>/dev/null ; " +
+                            "rm -rf /data/user/0/com.miui.home/cache/* 2>/dev/null ; " +
+                            "rm -rf /data/user_de/0/com.miui.home/databases/*icon* 2>/dev/null ; " +
+                            "rm -rf /data/user/0/com.miui.home/databases/*icon* 2>/dev/null ; " +
+                            "pkill -f com.mi.android.globallauncher ; am force-stop com.mi.android.globallauncher 2>/dev/null ; " +
+                            "pkill -f com.miui.home ; am force-stop com.miui.home 2>/dev/null";
 
                     final boolean ok = RootHelper.runRootCommand(cmd);
                     runOnUiThread(new Runnable() {
@@ -162,8 +171,8 @@ public class MainActivity extends Activity {
                             if (ok) {
                                 new AlertDialog.Builder(MainActivity.this)
                                         .setTitle("Успешно!")
-                                        .setMessage("Значки со стоковыми логотипами (" + IconThemeEngine.SHAPES[shapeIdx] + ", " +
-                                                IconThemeEngine.THEMES[themeIdx] + ") применены на ВСЕ приложения!\nРабочий стол перезапущен.")
+                                        .setMessage("Themed Icons (" + IconThemeEngine.SHAPES[shapeIdx] + ", " +
+                                                IconThemeEngine.THEMES[themeIdx] + ", без обводки) применены на ВСЕ приложения!\nРабочий стол перезапущен.")
                                         .setPositiveButton("OK", null)
                                         .show();
                             } else {
@@ -189,8 +198,18 @@ public class MainActivity extends Activity {
             @Override
             public void run() {
                 String cmd = "rm -f /data/system/theme/icons ; " +
-                        "rm -rf /data/system/theme/.runtime/icons* /data/system/theme/icons_cache* 2>/dev/null ; " +
-                        "pkill -f com.mi.android.globallauncher ; am force-stop com.mi.android.globallauncher";
+                        "rm -rf /data/system/theme/.runtime/* 2>/dev/null ; " +
+                        "rm -rf /data/system/theme/icons_cache* 2>/dev/null ; " +
+                        "rm -rf /data/user_de/0/com.mi.android.globallauncher/cache/* 2>/dev/null ; " +
+                        "rm -rf /data/user/0/com.mi.android.globallauncher/cache/* 2>/dev/null ; " +
+                        "rm -rf /data/user_de/0/com.mi.android.globallauncher/databases/*icon* 2>/dev/null ; " +
+                        "rm -rf /data/user/0/com.mi.android.globallauncher/databases/*icon* 2>/dev/null ; " +
+                        "rm -rf /data/user_de/0/com.miui.home/cache/* 2>/dev/null ; " +
+                        "rm -rf /data/user/0/com.miui.home/cache/* 2>/dev/null ; " +
+                        "rm -rf /data/user_de/0/com.miui.home/databases/*icon* 2>/dev/null ; " +
+                        "rm -rf /data/user/0/com.miui.home/databases/*icon* 2>/dev/null ; " +
+                        "pkill -f com.mi.android.globallauncher ; am force-stop com.mi.android.globallauncher 2>/dev/null ; " +
+                        "pkill -f com.miui.home ; am force-stop com.miui.home 2>/dev/null";
                 final boolean ok = RootHelper.runRootCommand(cmd);
                 runOnUiThread(new Runnable() {
                     @Override

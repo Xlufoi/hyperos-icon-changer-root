@@ -7,6 +7,7 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
 import android.graphics.*;
+import android.graphics.drawable.AdaptiveIconDrawable;
 import android.graphics.drawable.Drawable;
 import android.os.Build;
 import java.io.*;
@@ -119,13 +120,26 @@ public class IconThemeEngine {
     public static int getPlateColor(Context context, int themeIndex) {
         if (themeIndex == 0) { // Monet 70%
             int baseRgb = getMonetBaseColor(context);
-            return (baseRgb & 0x00FFFFFF) | (0xB2 << 24); // 0xB2 = 178 (~70% opacity)
+            return (baseRgb & 0x00FFFFFF) | (0xB2 << 24); // 70% opacity
         } else if (themeIndex == 1) { // Pure Black 70%
             return 0xB2000000; // 70% opacity pure black
         } else if (themeIndex == 2) { // Monet 100%
             return 0xFF000000 | getMonetBaseColor(context);
         } else { // Pure Black 100%
             return 0xFF000000;
+        }
+    }
+
+    public static int getGlyphColor(Context context, int themeIndex) {
+        if (themeIndex == 0 || themeIndex == 2) { // Monet
+            try {
+                if (Build.VERSION.SDK_INT >= 31) {
+                    return context.getColor(android.R.color.system_accent1_100);
+                }
+            } catch (Throwable ignored) {}
+            return 0xFFD8E4F8;
+        } else { // Pure Black
+            return 0xFFF1F5F9;
         }
     }
 
@@ -140,8 +154,8 @@ public class IconThemeEngine {
                         if (c != null) {
                             float[] hsv = new float[3];
                             Color.colorToHSV(c.toArgb(), hsv);
-                            hsv[1] = Math.min(0.35f, Math.max(0.15f, hsv[1])); // soft wallpaper tint
-                            hsv[2] = 0.22f; // dark neutral surface
+                            hsv[1] = Math.min(0.35f, Math.max(0.15f, hsv[1]));
+                            hsv[2] = 0.22f;
                             return Color.HSVToColor(hsv);
                         }
                     }
@@ -149,7 +163,6 @@ public class IconThemeEngine {
             }
         } catch (Throwable ignored) {}
 
-        // Fallback monet neutral
         try {
             if (Build.VERSION.SDK_INT >= 31) {
                 return context.getColor(android.R.color.system_neutral1_900);
@@ -168,6 +181,7 @@ public class IconThemeEngine {
         fillPaint.setColor(getPlateColor(context, themeIndex));
         fillPaint.setStyle(Paint.Style.FILL);
         canvas.drawPath(path, fillPaint);
+        // NO BORDER / NO OUTLINE
 
         return bitmap;
     }
@@ -183,32 +197,70 @@ public class IconThemeEngine {
         return bitmap;
     }
 
-    public static Bitmap renderAppIconWithStock(Context context, Drawable stockIcon, int shapeIndex, int themeIndex, int size) {
+    public static Bitmap renderThemedIcon(Context context, Drawable icon, int shapeIndex, int themeIndex, int size) {
         Bitmap bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888);
         Canvas canvas = new Canvas(bitmap);
 
-        // 1. Draw clean 70% semi-transparent plate (no liquid glass glare)
+        // 1. Plate: clean flat 70% semi-transparent plate (NO BORDER)
         Path path = createShapePath(shapeIndex, size, size);
         Paint fillPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         fillPaint.setColor(getPlateColor(context, themeIndex));
         fillPaint.setStyle(Paint.Style.FILL);
         canvas.drawPath(path, fillPaint);
 
-        // 2. Draw STOCK app icon scaled in center
-        if (stockIcon != null) {
-            canvas.save();
-            // Clip to shape boundary so stock icon doesn't leak outside
-            canvas.clipPath(path);
+        // 2. Render AOSP Themed Glyph
+        int glyphColor = getGlyphColor(context, themeIndex);
+        int glyphSize = (int) (size * 0.54f);
+        int offset = (size - glyphSize) / 2;
 
-            int targetSize = (int) (size * 0.68f);
-            int offset = (size - targetSize) / 2;
-            stockIcon.setBounds(offset, offset, offset + targetSize, offset + targetSize);
-            stockIcon.draw(canvas);
+        Drawable mono = null;
+        if (Build.VERSION.SDK_INT >= 33 && icon instanceof AdaptiveIconDrawable) {
+            try {
+                mono = ((AdaptiveIconDrawable) icon).getMonochrome();
+            } catch (Throwable ignored) {}
+        }
 
-            canvas.restore();
+        if (mono != null) {
+            try {
+                Drawable m = mono.mutate();
+                m.setTint(glyphColor);
+                m.setBounds(offset, offset, offset + glyphSize, offset + glyphSize);
+                m.draw(canvas);
+                return bitmap;
+            } catch (Throwable ignored) {}
+        }
+
+        // Convert stock icon/foreground to monochrome silhouette
+        if (icon != null) {
+            try {
+                Bitmap temp = Bitmap.createBitmap(glyphSize, glyphSize, Bitmap.Config.ARGB_8888);
+                Canvas tempCanvas = new Canvas(temp);
+
+                Drawable fg = null;
+                if (icon instanceof AdaptiveIconDrawable) {
+                    fg = ((AdaptiveIconDrawable) icon).getForeground();
+                }
+                if (fg == null) fg = icon;
+                fg.setBounds(0, 0, glyphSize, glyphSize);
+                fg.draw(tempCanvas);
+
+                Bitmap monoBitmap = convertBitmapToThemedMonochrome(temp, glyphColor);
+                canvas.drawBitmap(monoBitmap, offset, offset, null);
+            } catch (Throwable ignored) {}
         }
 
         return bitmap;
+    }
+
+    private static Bitmap convertBitmapToThemedMonochrome(Bitmap src, int tintColor) {
+        Bitmap result = Bitmap.createBitmap(src.getWidth(), src.getHeight(), Bitmap.Config.ARGB_8888);
+        Canvas c = new Canvas(result);
+
+        Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG);
+        paint.setColorFilter(new PorterDuffColorFilter(tintColor, PorterDuff.Mode.SRC_IN));
+        c.drawBitmap(src, 0, 0, paint);
+
+        return result;
     }
 
     public static File buildHyperOSThemeZip(Context context, int shapeIndex, int themeIndex) throws Exception {
@@ -218,8 +270,6 @@ public class IconThemeEngine {
         int size = 235;
         Bitmap plateBitmap = createPlateBitmap(context, shapeIndex, themeIndex, 168);
         Bitmap maskBitmap = createMaskBitmap(shapeIndex, 168);
-
-        // Empty 1x1 transparent bitmap for border and pattern (no liquid glass)
         Bitmap emptyBitmap = Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_8888);
 
         ByteArrayOutputStream plateBytes = new ByteArrayOutputStream();
@@ -232,12 +282,13 @@ public class IconThemeEngine {
         emptyBitmap.compress(Bitmap.CompressFormat.PNG, 100, emptyBytes);
 
         ZipOutputStream zos = new ZipOutputStream(new BufferedOutputStream(new FileOutputStream(outFile)));
+        java.util.HashSet<String> added = new java.util.HashSet<String>();
 
-        // 1. Master compositing templates
-        writeZipEntry(zos, "icon_background.png", plateBytes.toByteArray());
-        writeZipEntry(zos, "icon_mask.png", maskBytes.toByteArray());
-        writeZipEntry(zos, "icon_border.png", emptyBytes.toByteArray());
-        writeZipEntry(zos, "icon_pattern.png", emptyBytes.toByteArray());
+        // 1. Master compositing templates (clean, NO BORDER)
+        writeZipEntry(zos, "icon_background.png", plateBytes.toByteArray(), added);
+        writeZipEntry(zos, "icon_mask.png", maskBytes.toByteArray(), added);
+        writeZipEntry(zos, "icon_border.png", emptyBytes.toByteArray(), added);
+        writeZipEntry(zos, "icon_pattern.png", emptyBytes.toByteArray(), added);
 
         String svgPath = SHAPE_SVG_PATHS[Math.min(shapeIndex, SHAPE_SVG_PATHS.length - 1)];
         String xmlConfig = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" +
@@ -246,7 +297,7 @@ public class IconThemeEngine {
                 "    <Config name=\"UseDynamicIcon\" value=\"true\" />\n" +
                 "    <Config name=\"ConfigIconMask\" value=\"" + svgPath + "\" />\n" +
                 "</IconTransform>";
-        writeZipEntry(zos, "transform_config.xml", xmlConfig.getBytes("UTF-8"));
+        writeZipEntry(zos, "transform_config.xml", xmlConfig.getBytes("UTF-8"), added);
 
         // 2. Query ALL installed launcher applications on the device
         PackageManager pm = context.getPackageManager();
@@ -254,20 +305,25 @@ public class IconThemeEngine {
         mainIntent.addCategory(Intent.CATEGORY_LAUNCHER);
         List<ResolveInfo> apps = pm.queryIntentActivities(mainIntent, 0);
 
-        byte[] buf = new byte[8192];
         for (ResolveInfo info : apps) {
             try {
+                if (info == null || info.activityInfo == null) continue;
                 String pkg = info.activityInfo.packageName;
+                String cls = info.activityInfo.name;
                 Drawable stockIcon = info.loadIcon(pm);
 
-                Bitmap appIconBitmap = renderAppIconWithStock(context, stockIcon, shapeIndex, themeIndex, size);
+                Bitmap themedBitmap = renderThemedIcon(context, stockIcon, shapeIndex, themeIndex, size);
                 ByteArrayOutputStream iconStream = new ByteArrayOutputStream();
-                appIconBitmap.compress(Bitmap.CompressFormat.PNG, 100, iconStream);
+                themedBitmap.compress(Bitmap.CompressFormat.PNG, 100, iconStream);
                 byte[] iconBytes = iconStream.toByteArray();
 
-                // Write both pkg and pkg.png so HyperOS finds them 100%
-                writeZipEntry(zos, pkg, iconBytes);
-                writeZipEntry(zos, pkg + ".png", iconBytes);
+                // Save both package and activity names so HyperOS matches 100% of apps
+                writeZipEntry(zos, pkg, iconBytes, added);
+                writeZipEntry(zos, pkg + ".png", iconBytes, added);
+                if (cls != null && !cls.isEmpty()) {
+                    writeZipEntry(zos, cls + ".png", iconBytes, added);
+                    writeZipEntry(zos, pkg + "#" + cls + ".png", iconBytes, added);
+                }
             } catch (Throwable ignored) {}
         }
 
@@ -275,7 +331,8 @@ public class IconThemeEngine {
         return outFile;
     }
 
-    private static void writeZipEntry(ZipOutputStream zos, String name, byte[] data) throws IOException {
+    private static void writeZipEntry(ZipOutputStream zos, String name, byte[] data, java.util.Set<String> added) throws IOException {
+        if (!added.add(name)) return;
         ZipEntry entry = new ZipEntry(name);
         zos.putNextEntry(entry);
         zos.write(data);

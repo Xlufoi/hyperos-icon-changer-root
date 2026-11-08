@@ -20,38 +20,9 @@ public final class R {
         public static final int text_secondary=0x7f050005;
     }
     public static final class drawable {
-        public static final int ic_blueos=0x7f020000;
-        public static final int ic_browser=0x7f020001;
-        public static final int ic_calculator=0x7f020002;
-        public static final int ic_calendar=0x7f020003;
-        public static final int ic_camera=0x7f020004;
-        public static final int ic_clock=0x7f020005;
-        public static final int ic_compass=0x7f020006;
-        public static final int ic_discord=0x7f020007;
-        public static final int ic_files=0x7f020008;
-        public static final int ic_gallery=0x7f020009;
-        public static final int ic_generic=0x7f02000a;
-        public static final int ic_gmail=0x7f02000b;
-        public static final int ic_launcher=0x7f02000c;
-        public static final int ic_magisk=0x7f02000d;
-        public static final int ic_messages=0x7f02000e;
-        public static final int ic_mic=0x7f02000f;
-        public static final int ic_music=0x7f020010;
-        public static final int ic_notes=0x7f020011;
-        public static final int ic_phone=0x7f020012;
-        public static final int ic_playstore=0x7f020013;
-        public static final int ic_security=0x7f020014;
-        public static final int ic_settings=0x7f020015;
-        public static final int ic_spotify=0x7f020016;
-        public static final int ic_telegram=0x7f020017;
-        public static final int ic_termux=0x7f020018;
-        public static final int ic_vk=0x7f020019;
-        public static final int ic_weather=0x7f02001a;
-        public static final int ic_whatsapp=0x7f02001b;
-        public static final int ic_youtube=0x7f02001c;
-        public static final int iconback=0x7f02001d;
-        public static final int iconmask=0x7f02001e;
-        public static final int iconupon=0x7f02001f;
+        public static final int ic_launcher=0x7f020000;
+        public static final int iconback=0x7f020001;
+        public static final int iconmask=0x7f020002;
     }
     public static final class id {
         public static final int btn_apply_hyperos=0x7f080007;
