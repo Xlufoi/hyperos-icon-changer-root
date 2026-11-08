@@ -222,9 +222,7 @@ public class IconThemeEngine {
         if (styleIndex == 0) {
             // «Оригинальные цвета (Стоковые логотипы)»
             canvas.save();
-            if (fillPercent >= 75) {
-                canvas.clipPath(path);
-            }
+            canvas.clipPath(path);
             icon.setBounds(offset, offset, offset + glyphSize, offset + glyphSize);
             icon.draw(canvas);
             canvas.restore();
@@ -288,58 +286,97 @@ public class IconThemeEngine {
         int tg = Color.green(tintColor);
         int tb = Color.blue(tintColor);
 
-        // Check corners to detect if there is a solid background container
-        int c1 = pixels[0];
-        int c2 = pixels[w - 1];
-        int c3 = pixels[(h - 1) * w];
-        int c4 = pixels[w * h - 1];
+        // 8 border sample points (safely inside the shape, avoiding rounded corner transparency)
+        int[] sampleX = { w / 2, w / 2, 8, w - 8, w / 4, 3 * w / 4, w / 4, 3 * w / 4 };
+        int[] sampleY = { 8, h - 8, h / 2, h / 2, 12, 12, h - 12, h - 12 };
 
-        int a1 = (c1 >>> 24) & 0xff;
-        int a2 = (c2 >>> 24) & 0xff;
-        int a3 = (c3 >>> 24) & 0xff;
-        int a4 = (c4 >>> 24) & 0xff;
+        int opaqueCount = 0;
+        int sumR = 0, sumG = 0, sumB = 0;
 
-        boolean hasSolidBg = (a1 > 128 && a2 > 128 && a3 > 128 && a4 > 128);
+        for (int i = 0; i < 8; i++) {
+            int sx = Math.max(0, Math.min(w - 1, sampleX[i]));
+            int sy = Math.max(0, Math.min(h - 1, sampleY[i]));
+            int p = pixels[sy * w + sx];
+            int a = (p >>> 24) & 0xff;
+            if (a > 180) {
+                opaqueCount++;
+                sumR += (p >> 16) & 0xff;
+                sumG += (p >> 8) & 0xff;
+                sumB += p & 0xff;
+            }
+        }
 
-        if (!hasSolidBg) {
-            // Already a transparent-backed glyph/logo
+        if (opaqueCount < 5) {
+            // Transparent-backed logo/glyph (Chrome, Telegram, Drive, etc.)
             for (int i = 0; i < pixels.length; i++) {
                 int a = (pixels[i] >>> 24) & 0xff;
-                if (a > 0) {
+                if (a > 20) {
                     pixels[i] = (a << 24) | (tr << 16) | (tg << 8) | tb;
-                }
-            }
-        } else {
-            // Solid background container detected (Dialer, Gallery, Block Blast, etc.)
-            // Background color is estimated from corners
-            int bgR = (((c1 >> 16) & 0xff) + ((c2 >> 16) & 0xff) + ((c3 >> 16) & 0xff) + ((c4 >> 16) & 0xff)) / 4;
-            int bgG = (((c1 >> 8) & 0xff) + ((c2 >> 8) & 0xff) + ((c3 >> 8) & 0xff) + ((c4 >> 8) & 0xff)) / 4;
-            int bgB = ((c1 & 0xff) + (c2 & 0xff) + (c3 & 0xff) + (c4 & 0xff)) / 4;
-
-            for (int i = 0; i < pixels.length; i++) {
-                int p = pixels[i];
-                int a = (p >>> 24) & 0xff;
-                if (a == 0) continue;
-
-                int pr = (p >> 16) & 0xff;
-                int pg = (p >> 8) & 0xff;
-                int pb = p & 0xff;
-
-                int dr = Math.abs(pr - bgR);
-                int dg = Math.abs(pg - bgG);
-                int db = Math.abs(pb - bgB);
-                int diff = dr + dg + db; // 0..765
-
-                if (diff < 45) {
-                    // Background pixel -> make transparent
-                    pixels[i] = 0;
                 } else {
-                    // Foreground symbol (handset, flower lines, etc.)
-                    int symbolAlpha = Math.min(255, (diff - 45) * 5);
-                    int finalAlpha = (a * symbolAlpha) / 255;
-                    pixels[i] = (finalAlpha << 24) | (tr << 16) | (tg << 8) | tb;
+                    pixels[i] = 0;
                 }
             }
+            result.setPixels(pixels, 0, w, 0, 0, w, h);
+            return result;
+        }
+
+        // Solid background container detected (TikTok, Dialer, imo, Gallery, etc.)
+        int bgR = sumR / opaqueCount;
+        int bgG = sumG / opaqueCount;
+        int bgB = sumB / opaqueCount;
+
+        int[] candidatePixels = new int[w * h];
+        int glyphPixelCount = 0;
+
+        for (int i = 0; i < pixels.length; i++) {
+            int p = pixels[i];
+            int a = (p >>> 24) & 0xff;
+            if (a < 50) {
+                candidatePixels[i] = 0;
+                continue;
+            }
+
+            int pr = (p >> 16) & 0xff;
+            int pg = (p >> 8) & 0xff;
+            int pb = p & 0xff;
+
+            int diff = Math.abs(pr - bgR) + Math.abs(pg - bgG) + Math.abs(pb - bgB);
+
+            if (diff < 42) {
+                // Background pixel -> make transparent
+                candidatePixels[i] = 0;
+            } else {
+                // Logo pixel (phone handset, TikTok musical note, imo text, flower, etc.)
+                glyphPixelCount++;
+                int symbolAlpha = Math.min(255, (diff - 42) * 5);
+                int finalAlpha = (a * symbolAlpha) / 255;
+                candidatePixels[i] = (finalAlpha << 24) | (tr << 16) | (tg << 8) | tb;
+            }
+        }
+
+        float ratio = (float) glyphPixelCount / (float) (w * h);
+
+        if (ratio >= 0.015f && ratio <= 0.65f) {
+            // Successfully extracted clean inner glyph!
+            result.setPixels(candidatePixels, 0, w, 0, 0, w, h);
+            return result;
+        }
+
+        // Fallback for complex icons (games like Block Blast, complex artwork):
+        // Convert to high-contrast luminance rather than a solid flat block!
+        for (int i = 0; i < pixels.length; i++) {
+            int p = pixels[i];
+            int a = (p >>> 24) & 0xff;
+            if (a == 0) {
+                pixels[i] = 0;
+                continue;
+            }
+            int pr = (p >> 16) & 0xff;
+            int pg = (p >> 8) & 0xff;
+            int pb = p & 0xff;
+            int lum = (pr * 77 + pg * 151 + pb * 28) >> 8;
+            int finalAlpha = (a * (64 + (lum * 191 / 255))) / 255;
+            pixels[i] = (finalAlpha << 24) | (tr << 16) | (tg << 8) | tb;
         }
 
         result.setPixels(pixels, 0, w, 0, 0, w, h);
@@ -383,37 +420,229 @@ public class IconThemeEngine {
                 "</IconTransform>";
         writeZipEntry(zos, "transform_config.xml", xmlConfig.getBytes("UTF-8"), added);
 
-        // 2. Query ALL installed launcher applications on the device
         PackageManager pm = context.getPackageManager();
+
+        // 2. Query ALL installed launcher applications on the device
         Intent mainIntent = new Intent(Intent.ACTION_MAIN, null);
         mainIntent.addCategory(Intent.CATEGORY_LAUNCHER);
         List<ResolveInfo> apps = pm.queryIntentActivities(mainIntent, 0);
 
-        for (ResolveInfo info : apps) {
+        if (apps != null) {
+            for (ResolveInfo info : apps) {
+                try {
+                    if (info == null || info.activityInfo == null) continue;
+                    String pkg = info.activityInfo.packageName;
+                    String cls = info.activityInfo.name;
+                    Drawable stockIcon = info.loadIcon(pm);
+
+                    Bitmap themedBitmap = renderAppIcon(context, stockIcon, shapeIndex, themeIndex,
+                            styleIndex, opacityPercent, fillPercent, size);
+                    ByteArrayOutputStream iconStream = new ByteArrayOutputStream();
+                    themedBitmap.compress(Bitmap.CompressFormat.PNG, 100, iconStream);
+                    byte[] iconBytes = iconStream.toByteArray();
+
+                    writeAppEntries(zos, iconBytes, pkg, cls, added);
+                } catch (Throwable ignored) {}
+            }
+        }
+
+        // 3. Fallback: explicitly ensure ALL core HyperOS / MIUI system packages are included
+        String[] criticalPkgs = {
+                "com.android.contacts",
+                "com.google.android.dialer",
+                "com.android.phone",
+                "com.xiaomi.phone",
+                "com.miui.gallery",
+                "com.android.camera",
+                "com.android.mms",
+                "com.google.android.apps.messaging",
+                "com.android.settings",
+                "com.miui.securitycenter",
+                "com.android.fileexplorer",
+                "com.mi.android.globalfileexplorer",
+                "com.android.deskclock",
+                "com.android.calendar",
+                "com.miui.weather2",
+                "com.miui.notes",
+                "com.miui.calculator",
+                "com.miui.compass",
+                "com.miui.player",
+                "com.android.soundrecorder"
+        };
+
+        for (String cPkg : criticalPkgs) {
             try {
-                if (info == null || info.activityInfo == null) continue;
-                String pkg = info.activityInfo.packageName;
-                String cls = info.activityInfo.name;
-                Drawable stockIcon = info.loadIcon(pm);
+                if (!added.contains(cPkg) || !added.contains(cPkg + ".png")) {
+                    Drawable cIcon = pm.getApplicationIcon(cPkg);
+                    Bitmap themedBitmap = renderAppIcon(context, cIcon, shapeIndex, themeIndex,
+                            styleIndex, opacityPercent, fillPercent, size);
+                    ByteArrayOutputStream iconStream = new ByteArrayOutputStream();
+                    themedBitmap.compress(Bitmap.CompressFormat.PNG, 100, iconStream);
+                    byte[] iconBytes = iconStream.toByteArray();
 
-                Bitmap themedBitmap = renderAppIcon(context, stockIcon, shapeIndex, themeIndex,
-                        styleIndex, opacityPercent, fillPercent, size);
-                ByteArrayOutputStream iconStream = new ByteArrayOutputStream();
-                themedBitmap.compress(Bitmap.CompressFormat.PNG, 100, iconStream);
-                byte[] iconBytes = iconStream.toByteArray();
-
-                // Save both package and activity names so HyperOS matches 100% of apps
-                writeZipEntry(zos, pkg, iconBytes, added);
-                writeZipEntry(zos, pkg + ".png", iconBytes, added);
-                if (cls != null && !cls.isEmpty()) {
-                    writeZipEntry(zos, cls + ".png", iconBytes, added);
-                    writeZipEntry(zos, pkg + "#" + cls + ".png", iconBytes, added);
+                    writeAppEntries(zos, iconBytes, cPkg, null, added);
                 }
             } catch (Throwable ignored) {}
         }
 
         zos.close();
         return outFile;
+    }
+
+    private static void writeAppEntries(ZipOutputStream zos, byte[] iconBytes, String pkg, String cls,
+                                        java.util.Set<String> added) throws IOException {
+        if (iconBytes == null || iconBytes.length == 0) return;
+
+        // 1. Direct package & class lookup
+        if (pkg != null && !pkg.isEmpty()) {
+            writeZipEntry(zos, pkg, iconBytes, added);
+            writeZipEntry(zos, pkg + ".png", iconBytes, added);
+        }
+        if (cls != null && !cls.isEmpty()) {
+            writeZipEntry(zos, cls + ".png", iconBytes, added);
+            if (pkg != null) {
+                writeZipEntry(zos, pkg + "#" + cls + ".png", iconBytes, added);
+                writeZipEntry(zos, pkg + "#" + cls, iconBytes, added);
+            }
+        }
+
+        // 2. Comprehensive MIUI / HyperOS system aliases
+        if (pkg == null) return;
+        String p = pkg.toLowerCase();
+        String c = (cls != null) ? cls.toLowerCase() : "";
+
+        // Phone / Dialer (fixes standard HyperOS Phone not applying)
+        if (p.contains("contacts") || p.contains("dialer") || p.contains("phone")) {
+            writeZipEntry(zos, "phone.png", iconBytes, added);
+            writeZipEntry(zos, "phone", iconBytes, added);
+            writeZipEntry(zos, "contacts.png", iconBytes, added);
+            writeZipEntry(zos, "contacts", iconBytes, added);
+            writeZipEntry(zos, "dialer.png", iconBytes, added);
+            writeZipEntry(zos, "dialer", iconBytes, added);
+            writeZipEntry(zos, "com.android.contacts#com.android.contacts.TwelveKeyDialer.png", iconBytes, added);
+            writeZipEntry(zos, "com.android.contacts#com.android.contacts.TwelveKeyDialer", iconBytes, added);
+            writeZipEntry(zos, "TwelveKeyDialer.png", iconBytes, added);
+        }
+
+        // Camera
+        if (p.contains("camera")) {
+            writeZipEntry(zos, "camera.png", iconBytes, added);
+            writeZipEntry(zos, "camera", iconBytes, added);
+        }
+
+        // Gallery / Photos
+        if (p.contains("gallery") || p.contains("photos")) {
+            writeZipEntry(zos, "gallery.png", iconBytes, added);
+            writeZipEntry(zos, "gallery", iconBytes, added);
+        }
+
+        // Messaging / SMS
+        if (p.contains("mms") || p.contains("messaging") || p.contains("message")) {
+            writeZipEntry(zos, "mms.png", iconBytes, added);
+            writeZipEntry(zos, "mms", iconBytes, added);
+            writeZipEntry(zos, "sms.png", iconBytes, added);
+            writeZipEntry(zos, "sms", iconBytes, added);
+        }
+
+        // Settings
+        if (p.contains("settings")) {
+            writeZipEntry(zos, "settings.png", iconBytes, added);
+            writeZipEntry(zos, "settings", iconBytes, added);
+        }
+
+        // Browser
+        if (p.contains("browser") || p.contains("chrome")) {
+            writeZipEntry(zos, "browser.png", iconBytes, added);
+            writeZipEntry(zos, "browser", iconBytes, added);
+        }
+
+        // Clock
+        if (p.contains("clock")) {
+            writeZipEntry(zos, "clock.png", iconBytes, added);
+            writeZipEntry(zos, "clock", iconBytes, added);
+            writeZipEntry(zos, "deskclock.png", iconBytes, added);
+            writeZipEntry(zos, "deskclock", iconBytes, added);
+        }
+
+        // Calendar
+        if (p.contains("calendar")) {
+            writeZipEntry(zos, "calendar.png", iconBytes, added);
+            writeZipEntry(zos, "calendar", iconBytes, added);
+        }
+
+        // File Manager
+        if (p.contains("fileexplorer") || p.contains("file_explorer") || p.contains("files")) {
+            writeZipEntry(zos, "file_explorer.png", iconBytes, added);
+            writeZipEntry(zos, "fileexplorer.png", iconBytes, added);
+            writeZipEntry(zos, "file_explorer", iconBytes, added);
+        }
+
+        // Weather
+        if (p.contains("weather")) {
+            writeZipEntry(zos, "weather.png", iconBytes, added);
+            writeZipEntry(zos, "weather", iconBytes, added);
+        }
+
+        // Notes
+        if (p.contains("notes") || p.contains("keep")) {
+            writeZipEntry(zos, "notes.png", iconBytes, added);
+            writeZipEntry(zos, "notes", iconBytes, added);
+        }
+
+        // Security / Cleaner
+        if (p.contains("securitycenter") || p.contains("security")) {
+            writeZipEntry(zos, "security.png", iconBytes, added);
+            writeZipEntry(zos, "securitycenter.png", iconBytes, added);
+            writeZipEntry(zos, "clean_master.png", iconBytes, added);
+            writeZipEntry(zos, "cleanmaster.png", iconBytes, added);
+        }
+
+        // Calculator
+        if (p.contains("calculator")) {
+            writeZipEntry(zos, "calculator.png", iconBytes, added);
+            writeZipEntry(zos, "calculator", iconBytes, added);
+        }
+
+        // Compass
+        if (p.contains("compass")) {
+            writeZipEntry(zos, "compass.png", iconBytes, added);
+            writeZipEntry(zos, "compass", iconBytes, added);
+        }
+
+        // Music
+        if (p.contains("music") || p.contains("player")) {
+            writeZipEntry(zos, "music.png", iconBytes, added);
+            writeZipEntry(zos, "music", iconBytes, added);
+        }
+
+        // Sound Recorder
+        if (p.contains("soundrecorder") || p.contains("recorder")) {
+            writeZipEntry(zos, "sound_recorder.png", iconBytes, added);
+            writeZipEntry(zos, "sound_recorder", iconBytes, added);
+        }
+
+        // Themes
+        if (p.contains("thememanager")) {
+            writeZipEntry(zos, "theme_manager.png", iconBytes, added);
+            writeZipEntry(zos, "theme_manager", iconBytes, added);
+        }
+
+        // Updater
+        if (p.contains("updater")) {
+            writeZipEntry(zos, "updater.png", iconBytes, added);
+        }
+
+        // Downloads
+        if (p.contains("download")) {
+            writeZipEntry(zos, "download.png", iconBytes, added);
+            writeZipEntry(zos, "downloads.png", iconBytes, added);
+        }
+
+        // App Store
+        if (p.contains("market") || p.contains("mipicks")) {
+            writeZipEntry(zos, "market.png", iconBytes, added);
+            writeZipEntry(zos, "appstore.png", iconBytes, added);
+        }
     }
 
     private static void writeZipEntry(ZipOutputStream zos, String name, byte[] data, java.util.Set<String> added) throws IOException {
