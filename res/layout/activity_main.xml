@@ -59,35 +59,30 @@
                     android:id="@+id/preview_icon1"
                     android:layout_width="54dp"
                     android:layout_height="54dp"
-                    android:src="@drawable/ic_settings"
                     android:layout_margin="6dp" />
 
                 <ImageView
                     android:id="@+id/preview_icon2"
                     android:layout_width="54dp"
                     android:layout_height="54dp"
-                    android:src="@drawable/ic_phone"
                     android:layout_margin="6dp" />
 
                 <ImageView
                     android:id="@+id/preview_icon3"
                     android:layout_width="54dp"
                     android:layout_height="54dp"
-                    android:src="@drawable/ic_messages"
                     android:layout_margin="6dp" />
 
                 <ImageView
                     android:id="@+id/preview_icon4"
                     android:layout_width="54dp"
                     android:layout_height="54dp"
-                    android:src="@drawable/ic_camera"
                     android:layout_margin="6dp" />
 
                 <ImageView
                     android:id="@+id/preview_icon5"
                     android:layout_width="54dp"
                     android:layout_height="54dp"
-                    android:src="@drawable/ic_telegram"
                     android:layout_margin="6dp" />
             </LinearLayout>
         </LinearLayout>

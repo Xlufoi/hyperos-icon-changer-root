@@ -5,13 +5,16 @@ import android.app.AlertDialog;
 import android.app.ProgressDialog;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
+import android.content.pm.ResolveInfo;
 import android.graphics.Bitmap;
-import android.graphics.Color;
+import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.*;
 
 import java.io.File;
+import java.util.List;
 
 public class MainActivity extends Activity {
 
@@ -39,7 +42,6 @@ public class MainActivity extends Activity {
                 findViewById(R.id.preview_icon5)
         };
 
-        // Adapters
         ArrayAdapter<String> shapeAdapter = new ArrayAdapter<>(this,
                 android.R.layout.simple_spinner_dropdown_item, IconThemeEngine.SHAPES);
         spinnerShape.setAdapter(shapeAdapter);
@@ -48,10 +50,9 @@ public class MainActivity extends Activity {
                 android.R.layout.simple_spinner_dropdown_item, IconThemeEngine.THEMES);
         spinnerTheme.setAdapter(themeAdapter);
 
-        // Load saved preferences
         SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
-        spinnerShape.setSelection(prefs.getInt(KEY_SHAPE, 0)); // Default Circle
-        spinnerTheme.setSelection(prefs.getInt(KEY_THEME, 0)); // Default Monet 70%
+        spinnerShape.setSelection(prefs.getInt(KEY_SHAPE, 0)); // Circle
+        spinnerTheme.setSelection(prefs.getInt(KEY_THEME, 0)); // Monet 70%
 
         AdapterView.OnItemSelectedListener listener = new AdapterView.OnItemSelectedListener() {
             @Override
@@ -107,9 +108,25 @@ public class MainActivity extends Activity {
         int shapeIdx = spinnerShape.getSelectedItemPosition();
         int themeIdx = spinnerTheme.getSelectedItemPosition();
 
-        Bitmap plate = IconThemeEngine.generateShapePlate(this, shapeIdx, themeIdx, 168);
-        for (ImageView iv : previewIcons) {
-            iv.setBackground(new android.graphics.drawable.BitmapDrawable(getResources(), plate));
+        PackageManager pm = getPackageManager();
+        Intent mainIntent = new Intent(Intent.ACTION_MAIN, null);
+        mainIntent.addCategory(Intent.CATEGORY_LAUNCHER);
+        List<ResolveInfo> apps = pm.queryIntentActivities(mainIntent, 0);
+
+        for (int i = 0; i < previewIcons.length; i++) {
+            Drawable stock = null;
+            if (apps != null && i < apps.size()) {
+                try {
+                    stock = apps.get(i).loadIcon(pm);
+                } catch (Throwable ignored) {}
+            }
+            if (stock == null) {
+                stock = getApplicationInfo().loadIcon(pm);
+            }
+
+            Bitmap previewBitmap = IconThemeEngine.renderAppIconWithStock(this, stock, shapeIdx, themeIdx, 168);
+            previewIcons[i].setBackground(null); // clear background to eliminate overlaying
+            previewIcons[i].setImageBitmap(previewBitmap);
         }
     }
 
@@ -118,7 +135,7 @@ public class MainActivity extends Activity {
         final int themeIdx = spinnerTheme.getSelectedItemPosition();
 
         final ProgressDialog dialog = new ProgressDialog(this);
-        dialog.setMessage("Генерация и установка значков BlueOS...");
+        dialog.setMessage("Сборка значков для всех установленных приложений...");
         dialog.setCancelable(false);
         dialog.show();
 
@@ -126,7 +143,7 @@ public class MainActivity extends Activity {
             @Override
             public void run() {
                 try {
-                    File customizedZip = IconThemeEngine.buildCustomizedIconsZip(MainActivity.this, shapeIdx, themeIdx);
+                    File customizedZip = IconThemeEngine.buildHyperOSThemeZip(MainActivity.this, shapeIdx, themeIdx);
                     String iconsPath = customizedZip.getAbsolutePath();
 
                     String cmd = "mkdir -p /data/system/theme && " +
@@ -145,8 +162,8 @@ public class MainActivity extends Activity {
                             if (ok) {
                                 new AlertDialog.Builder(MainActivity.this)
                                         .setTitle("Успешно!")
-                                        .setMessage("Значки BlueOS (" + IconThemeEngine.SHAPES[shapeIdx] + ", " +
-                                                IconThemeEngine.THEMES[themeIdx] + ") применены на все приложения!\nРабочий стол перезапущен.")
+                                        .setMessage("Значки со стоковыми логотипами (" + IconThemeEngine.SHAPES[shapeIdx] + ", " +
+                                                IconThemeEngine.THEMES[themeIdx] + ") применены на ВСЕ приложения!\nРабочий стол перезапущен.")
                                         .setPositiveButton("OK", null)
                                         .show();
                             } else {
