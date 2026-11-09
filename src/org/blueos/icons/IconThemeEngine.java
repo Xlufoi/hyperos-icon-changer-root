@@ -33,27 +33,35 @@ import java.util.zip.ZipOutputStream;
 public class IconThemeEngine {
 
     public static final String[] SHAPES = {
-            "Круг (Circle)",
-            "Сквиркл (Squircle)",
-            "Скругленный квадрат (Rounded Square)",
-            "Капля слева (Teardrop)",
-            "Капля справа (Teardrop Right)",
-            "Шестиугольник (Hexagon)",
-            "Восьмиугольник (Octagon)",
-            "Цветок (Flower / Pebble)"
+            "Circle",
+            "Squircle",
+            "Rounded Square",
+            "Teardrop",
+            "Teardrop Right",
+            "Hexagon",
+            "Octagon",
+            "Pebble"
     };
 
     public static final String[] THEMES = {
-            "Monet Светлая (70% полупрозрачная)",
-            "Monet Темная (70% полупрозрачная)",
-            "AOSP Черная (70% полупрозрачная)",
-            "AOSP Белая (70% полупрозрачная)"
+            "System Monet (Wallpaper)",
+            "Sky Blue Monet",
+            "Mint Green Monet",
+            "Lavender Violet Monet",
+            "Rose Pink Monet",
+            "Peach Coral Monet",
+            "Amber Sand Monet",
+            "Teal Cyan Monet",
+            "Ruby Crimson Monet",
+            "Deep Indigo Monet",
+            "Slate Gray Monet",
+            "AOSP AMOLED Black",
+            "AOSP Pure White"
     };
 
     public static final String[] STYLES = {
-            "Оригинальные цвета (Стоковые логотипы)",
-            "Monet (Тематический стиль AOSP)",
-            "Чисто черный / белый (AOSP Dark)"
+            "Themed Monochrome (RGB Palette)",
+            "Original Stock Icons"
     };
 
     public static final String[] SHAPE_SVG_PATHS = {
@@ -178,55 +186,121 @@ public class IconThemeEngine {
         int alpha = (int) (255 * (opacityPercent / 100f));
         alpha = Math.max(0, Math.min(255, alpha));
 
-        int baseR = 30, baseG = 41, baseB = 59; // Dark fallback
+        int r = 30, g = 41, b = 59; // Dark fallback
 
         switch (themeIndex) {
-            case 0: // Monet Light
+            case 0: // System Monet (from wallpaper)
                 if (Build.VERSION.SDK_INT >= 31 && context != null) {
                     try {
                         int c = context.getColor(android.R.color.system_accent1_100);
                         return Color.argb(alpha, Color.red(c), Color.green(c), Color.blue(c));
                     } catch (Throwable ignored) {}
                 }
-                baseR = 224; baseG = 236; baseB = 255;
+                r = 219; g = 234; b = 254; // #DBEAFE
                 break;
-            case 1: // Monet Dark
-                if (Build.VERSION.SDK_INT >= 31 && context != null) {
-                    try {
-                        int c = context.getColor(android.R.color.system_accent1_800);
-                        return Color.argb(alpha, Color.red(c), Color.green(c), Color.blue(c));
-                    } catch (Throwable ignored) {}
-                }
-                baseR = 30; baseG = 41; baseB = 59;
+            case 1: // Sky Blue
+                r = 224; g = 242; b = 254; // #E0F2FE
                 break;
-            case 2: // AOSP Pure Black
-                baseR = 15; baseG = 23; baseB = 42;
+            case 2: // Mint Green
+                r = 209; g = 250; b = 229; // #D1FAE5
                 break;
-            case 3: // AOSP Pure White
-                baseR = 248; baseG = 250; baseB = 252;
+            case 3: // Lavender Violet
+                r = 243; g = 232; b = 255; // #F3E8FF
+                break;
+            case 4: // Rose Pink
+                r = 252; g = 231; b = 243; // #FCE7F3
+                break;
+            case 5: // Peach Coral
+                r = 254; g = 215; b = 170; // #FED7AA
+                break;
+            case 6: // Amber Sand
+                r = 254; g = 240; b = 138; // #FEF08A
+                break;
+            case 7: // Teal Cyan
+                r = 204; g = 251; b = 241; // #CCFBF1
+                break;
+            case 8: // Ruby Crimson
+                r = 254; g = 205; b = 211; // #FECDD3
+                break;
+            case 9: // Deep Indigo
+                r = 224; g = 231; b = 255; // #E0E7FF
+                break;
+            case 10: // Slate Gray
+                r = 226; g = 232; b = 240; // #E2E8F0
+                break;
+            case 11: // AOSP Pure Black
+                r = 15; g = 23; b = 42; // #0F172A
+                break;
+            case 12: // AOSP Pure White
+                r = 248; g = 250; b = 252; // #F8FAFC
                 break;
         }
-        return Color.argb(alpha, baseR, baseG, baseB);
+        return Color.argb(alpha, r, g, b);
     }
 
     public static int getMonetGlyphColor(Context context) {
-        if (Build.VERSION.SDK_INT >= 31 && context != null) {
-            try {
-                return context.getColor(android.R.color.system_accent1_200);
-            } catch (Throwable ignored) {}
+        return getMonetGlyphColor(context, 0);
+    }
+
+    public static int getMonetGlyphColor(Context context, int themeIndex) {
+        switch (themeIndex) {
+            case 0: // System Monet
+                if (Build.VERSION.SDK_INT >= 31 && context != null) {
+                    try {
+                        return context.getColor(android.R.color.system_accent1_200);
+                    } catch (Throwable ignored) {}
+                }
+                return 0xFF0284C7;
+            case 1: // Sky Blue
+                return 0xFF0284C7;
+            case 2: // Mint Green
+                return 0xFF059669;
+            case 3: // Lavender Violet
+                return 0xFF9333EA;
+            case 4: // Rose Pink
+                return 0xFFDB2777;
+            case 5: // Peach Coral
+                return 0xFFEA580C;
+            case 6: // Amber Sand
+                return 0xFFD97706;
+            case 7: // Teal Cyan
+                return 0xFF0D9488;
+            case 8: // Ruby Crimson
+                return 0xFFE11D48;
+            case 9: // Deep Indigo
+                return 0xFF4F46E5;
+            case 10: // Slate Gray
+                return 0xFF475569;
+            case 11: // AOSP Black
+                return 0xFFF8FAFC;
+            case 12: // AOSP White
+                return 0xFF0F172A;
+            default:
+                return 0xFF0284C7;
         }
-        return 0xFF93C5FD;
     }
 
     public static Bitmap createPlateBitmap(Context context, int shapeIndex, int themeIndex, int opacityPercent, int size) {
-        return createPlateBitmap(context, shapeIndex, themeIndex, opacityPercent, 36, size);
+        return createPlateBitmap(context, shapeIndex, themeIndex, opacityPercent, 36, size, 0, false);
     }
 
     public static Bitmap createPlateBitmap(Context context, int shapeIndex, int themeIndex, int opacityPercent, int cornerRadius, int size) {
+        return createPlateBitmap(context, shapeIndex, themeIndex, opacityPercent, cornerRadius, size, 0, false);
+    }
+
+    public static Bitmap createPlateBitmap(Context context, int shapeIndex, int themeIndex, int opacityPercent, int cornerRadius, int size,
+                                           int customPlateColor, boolean useCustomPlate) {
         Bitmap bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888);
         Canvas canvas = new Canvas(bitmap);
         Path path = createShapePath(shapeIndex, size, size, cornerRadius);
-        int plateColor = getPlateColor(context, themeIndex, opacityPercent);
+        int plateColor;
+        if (useCustomPlate) {
+            int alpha = (int) (255 * (opacityPercent / 100f));
+            alpha = Math.max(0, Math.min(255, alpha));
+            plateColor = Color.argb(alpha, Color.red(customPlateColor), Color.green(customPlateColor), Color.blue(customPlateColor));
+        } else {
+            plateColor = getPlateColor(context, themeIndex, opacityPercent);
+        }
         if (Color.alpha(plateColor) > 0) {
             Paint fillPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
             fillPaint.setColor(plateColor);
@@ -663,24 +737,39 @@ public class IconThemeEngine {
 
     public static Bitmap renderAppIcon(Context context, Drawable icon, int shapeIndex, int themeIndex,
                                       int styleIndex, int opacityPercent, int fillPercent, int size) {
-        return renderAppIcon(context, icon, null, null, shapeIndex, themeIndex, styleIndex, opacityPercent, fillPercent, size);
+        return renderAppIcon(context, icon, null, null, shapeIndex, themeIndex, styleIndex, opacityPercent, fillPercent, 36, size, 0, false, 0, false);
     }
 
     public static Bitmap renderAppIcon(Context context, Drawable icon, String pkg, String cls,
                                       int shapeIndex, int themeIndex, int styleIndex,
                                       int opacityPercent, int fillPercent, int size) {
-        return renderAppIcon(context, icon, pkg, cls, shapeIndex, themeIndex, styleIndex, opacityPercent, fillPercent, 36, size);
+        return renderAppIcon(context, icon, pkg, cls, shapeIndex, themeIndex, styleIndex, opacityPercent, fillPercent, 36, size, 0, false, 0, false);
     }
 
     public static Bitmap renderAppIcon(Context context, Drawable icon, String pkg, String cls,
                                       int shapeIndex, int themeIndex, int styleIndex,
                                       int opacityPercent, int fillPercent, int cornerRadius, int size) {
+        return renderAppIcon(context, icon, pkg, cls, shapeIndex, themeIndex, styleIndex, opacityPercent, fillPercent, cornerRadius, size, 0, false, 0, false);
+    }
+
+    public static Bitmap renderAppIcon(Context context, Drawable icon, String pkg, String cls,
+                                      int shapeIndex, int themeIndex, int styleIndex,
+                                      int opacityPercent, int fillPercent, int cornerRadius, int size,
+                                      int customPlateColor, boolean useCustomPlate,
+                                      int customGlyphColor, boolean useCustomGlyph) {
         Bitmap bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888);
         Canvas canvas = new Canvas(bitmap);
 
         // 1. Draw Plate (no borders)
         Path path = createShapePath(shapeIndex, size, size, cornerRadius);
-        int plateColor = getPlateColor(context, themeIndex, opacityPercent);
+        int plateColor;
+        if (useCustomPlate) {
+            int alpha = (int) (255 * (opacityPercent / 100f));
+            alpha = Math.max(0, Math.min(255, alpha));
+            plateColor = Color.argb(alpha, Color.red(customPlateColor), Color.green(customPlateColor), Color.blue(customPlateColor));
+        } else {
+            plateColor = getPlateColor(context, themeIndex, opacityPercent);
+        }
         if (Color.alpha(plateColor) > 0) {
             Paint fillPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
             fillPaint.setColor(plateColor);
@@ -694,8 +783,8 @@ public class IconThemeEngine {
         float cx = size / 2f;
         float cy = size / 2f;
 
-        if (styleIndex == 0) {
-            // Style 0: «Оригинальные цвета (Стоковые логотипы)»
+        if (styleIndex == 1) {
+            // Style 1: "Original Stock Icons"
             if (icon != null) {
                 Bitmap raw = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888);
                 Canvas rawCanvas = new Canvas(raw);
@@ -711,8 +800,8 @@ public class IconThemeEngine {
             return bitmap;
         }
 
-        // Style 1 (Monet) or Style 2 (Pure Black/White)
-        int glyphColor = (styleIndex == 1) ? getMonetGlyphColor(context) : 0xFFF1F5F9;
+        // Style 0: "Themed Monochrome (RGB Palette)"
+        int glyphColor = useCustomGlyph ? ((0xFF << 24) | (customGlyphColor & 0x00FFFFFF)) : getMonetGlyphColor(context, themeIndex);
 
         String p = (pkg != null) ? pkg.toLowerCase() : "";
         String c = (cls != null) ? cls.toLowerCase() : "";
@@ -812,37 +901,53 @@ public class IconThemeEngine {
 
         // Try smart extraction on foreground / icon
         try {
-            Bitmap temp = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888);
-            Canvas tempCanvas = new Canvas(temp);
-
-            Drawable fg = null;
             if (icon instanceof AdaptiveIconDrawable) {
-                fg = ((AdaptiveIconDrawable) icon).getForeground();
-            }
-            if (fg == null) fg = icon;
-            fg.setBounds(0, 0, size, size);
-            fg.draw(tempCanvas);
+                Drawable fg = ((AdaptiveIconDrawable) icon).getForeground();
+                if (fg != null) {
+                    Bitmap fgBmp = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888);
+                    Canvas fgc = new Canvas(fgBmp);
+                    Drawable clone = (fg.getConstantState() != null) ? fg.getConstantState().newDrawable().mutate() : fg;
+                    clone.setColorFilter(new PorterDuffColorFilter(glyphColor, PorterDuff.Mode.SRC_IN));
+                    clone.setBounds(0, 0, size, size);
+                    clone.draw(fgc);
 
-            Bitmap themedMono = extractSmartMonochrome(temp, glyphColor);
-            if (themedMono != null) {
-                Bitmap normMono = normalizeAndCenterBitmap(themedMono, size, visualFill);
-                canvas.drawBitmap(normMono != null ? normMono : themedMono, 0, 0, null);
-                return bitmap;
+                    Bitmap themedMono = extractSmartMonochrome(fgBmp, glyphColor);
+                    Bitmap normMono = normalizeAndCenterBitmap(themedMono != null ? themedMono : fgBmp, size, visualFill);
+                    canvas.drawBitmap(normMono != null ? normMono : fgBmp, 0, 0, null);
+                    return bitmap;
+                }
+            } else if (icon != null) {
+                Bitmap temp = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888);
+                Canvas tempCanvas = new Canvas(temp);
+                icon.setBounds(0, 0, size, size);
+                icon.draw(tempCanvas);
+
+                Bitmap themedMono = extractSmartMonochrome(temp, glyphColor);
+                if (themedMono != null) {
+                    Bitmap normMono = normalizeAndCenterBitmap(themedMono, size, visualFill);
+                    canvas.drawBitmap(normMono != null ? normMono : themedMono, 0, 0, null);
+                    return bitmap;
+                }
             }
         } catch (Throwable ignored) {}
 
-        // Ultimate safe fallback: NEVER leave a blank empty plate!
-        // Render the crisp original stock icon, normalized to the exact same visual fill!
-        Bitmap rawStock = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888);
-        Canvas sc = new Canvas(rawStock);
-        icon.setBounds(0, 0, size, size);
-        icon.draw(sc);
-        Bitmap normStock = normalizeAndCenterBitmap(rawStock, size, visualFill);
-
-        canvas.save();
-        canvas.clipPath(path);
-        canvas.drawBitmap(normStock != null ? normStock : rawStock, 0, 0, null);
-        canvas.restore();
+        // Monogram letter fallback (AOSP Themed Icon style) - guarantees NO nested squircle or extra border!
+        String letter = "?";
+        if (pkg != null && !pkg.isEmpty()) {
+            String[] parts = pkg.split("\\.");
+            String last = parts[parts.length - 1];
+            if (!last.isEmpty()) {
+                letter = last.substring(0, 1).toUpperCase();
+            }
+        }
+        Paint textPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        textPaint.setColor(glyphColor);
+        textPaint.setTextSize(gs * 0.75f);
+        textPaint.setTypeface(android.graphics.Typeface.create(android.graphics.Typeface.DEFAULT, android.graphics.Typeface.BOLD));
+        textPaint.setTextAlign(Paint.Align.CENTER);
+        Paint.FontMetrics fm = textPaint.getFontMetrics();
+        float baseline = cy - (fm.ascent + fm.descent) / 2f;
+        canvas.drawText(letter, cx, baseline, textPaint);
 
         return bitmap;
     }
@@ -852,6 +957,12 @@ public class IconThemeEngine {
      */
     public static Bitmap renderGlyphOnly(Context context, String pkg, String cls,
                                         int styleIndex, int fillPercent, int size) {
+        return renderGlyphOnly(context, pkg, cls, styleIndex, fillPercent, size, 0, false);
+    }
+
+    public static Bitmap renderGlyphOnly(Context context, String pkg, String cls,
+                                        int styleIndex, int fillPercent, int size,
+                                        int customGlyphColor, boolean useCustomGlyph) {
         Bitmap bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888);
         Canvas canvas = new Canvas(bitmap);
 
@@ -860,7 +971,14 @@ public class IconThemeEngine {
         float cx = size / 2f;
         float cy = size / 2f;
 
-        int glyphColor = (styleIndex == 1) ? getMonetGlyphColor(context) : 0xFFF1F5F9;
+        int glyphColor;
+        if (useCustomGlyph) {
+            glyphColor = (0xFF << 24) | (customGlyphColor & 0x00FFFFFF);
+        } else if (styleIndex == 1) {
+            glyphColor = getMonetGlyphColor(context);
+        } else {
+            glyphColor = 0xFFF1F5F9;
+        }
         Paint glyphPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         glyphPaint.setColor(glyphColor);
         glyphPaint.setStyle(Paint.Style.FILL);
@@ -918,82 +1036,191 @@ public class IconThemeEngine {
         int tg = Color.green(tintColor);
         int tb = Color.blue(tintColor);
 
-        // 8 border sample points
-        int[] sampleX = { w / 2, w / 2, 8, w - 8, w / 4, 3 * w / 4, w / 4, 3 * w / 4 };
-        int[] sampleY = { 8, h - 8, h / 2, h / 2, 12, 12, h - 12, h - 12 };
-
+        // Find bounding box and count opaque pixels
+        int minX = w, maxX = 0, minY = h, maxY = 0;
         int opaqueCount = 0;
-        int sumR = 0, sumG = 0, sumB = 0;
-
-        for (int i = 0; i < 8; i++) {
-            int sx = Math.max(0, Math.min(w - 1, sampleX[i]));
-            int sy = Math.max(0, Math.min(h - 1, sampleY[i]));
-            int p = pixels[sy * w + sx];
-            int a = (p >>> 24) & 0xff;
-            if (a > 180) {
-                opaqueCount++;
-                sumR += (p >> 16) & 0xff;
-                sumG += (p >> 8) & 0xff;
-                sumB += p & 0xff;
+        for (int y = 0; y < h; y++) {
+            for (int x = 0; x < w; x++) {
+                int a = (pixels[y * w + x] >>> 24) & 0xff;
+                if (a > 30) {
+                    opaqueCount++;
+                    if (x < minX) minX = x;
+                    if (x > maxX) maxX = x;
+                    if (y < minY) minY = y;
+                    if (y > maxY) maxY = y;
+                }
             }
         }
 
-        if (opaqueCount < 5) {
-            // Transparent-backed logo
+        if (opaqueCount < 20 || maxX <= minX || maxY <= minY) {
+            return null;
+        }
+
+        int bw = maxX - minX + 1;
+        int bh = maxY - minY + 1;
+        float bboxArea = (float) (bw * bh);
+        float fillRatio = (float) opaqueCount / bboxArea;
+
+        // Sample perimeter points inside the bounding box
+        int insetX = Math.max(2, bw / 10);
+        int insetY = Math.max(2, bh / 10);
+
+        int[] sampleX = {
+            minX + insetX, minX + bw / 2, maxX - insetX,
+            minX + insetX,                maxX - insetX,
+            minX + insetX, minX + bw / 2, maxX - insetX
+        };
+        int[] sampleY = {
+            minY + insetY, minY + insetY, minY + insetY,
+            minY + bh / 2,                minY + bh / 2,
+            maxY - insetY, maxY - insetY, maxY - insetY
+        };
+
+        int borderOpaqueCount = 0;
+        for (int i = 0; i < sampleX.length; i++) {
+            int p = pixels[sampleY[i] * w + sampleX[i]];
+            if (((p >>> 24) & 0xff) > 40) {
+                borderOpaqueCount++;
+            }
+        }
+
+        boolean isContainer = (fillRatio >= 0.65f) || (borderOpaqueCount >= 5);
+
+        if (!isContainer) {
+            // Cutout emblem on transparent background! Tint visible pixels
             Bitmap result = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
+            int visibleCount = 0;
             for (int i = 0; i < pixels.length; i++) {
                 int a = (pixels[i] >>> 24) & 0xff;
                 if (a > 20) {
+                    visibleCount++;
                     pixels[i] = (a << 24) | (tr << 16) | (tg << 8) | tb;
                 } else {
                     pixels[i] = 0;
                 }
             }
-            result.setPixels(pixels, 0, w, 0, 0, w, h);
-            return result;
+            if (visibleCount > 15) {
+                result.setPixels(pixels, 0, w, 0, 0, w, h);
+                return result;
+            }
+            return null;
         }
 
-        // Solid background container detected
-        int bgR = sumR / opaqueCount;
-        int bgG = sumG / opaqueCount;
-        int bgB = sumB / opaqueCount;
+        // Solid container with inner logo: Extract emblem via bilinear background subtraction
+        int cTL = pixels[(minY + insetY) * w + (minX + insetX)];
+        int cTR = pixels[(minY + insetY) * w + (maxX - insetX)];
+        int cBL = pixels[(maxY - insetY) * w + (minX + insetX)];
+        int cBR = pixels[(maxY - insetY) * w + (maxX - insetX)];
+
+        int tlR = (cTL >> 16) & 0xff, tlG = (cTL >> 8) & 0xff, tlB = cTL & 0xff;
+        int trR = (cTR >> 16) & 0xff, trG = (cTR >> 8) & 0xff, trB = cTR & 0xff;
+        int blR = (cBL >> 16) & 0xff, blG = (cBL >> 8) & 0xff, blB = cBL & 0xff;
+        int brR = (cBR >> 16) & 0xff, brG = (cBR >> 8) & 0xff, brB = cBR & 0xff;
 
         int[] candidatePixels = new int[w * h];
         int glyphPixelCount = 0;
 
-        for (int i = 0; i < pixels.length; i++) {
-            int p = pixels[i];
-            int a = (p >>> 24) & 0xff;
-            if (a < 50) {
-                candidatePixels[i] = 0;
-                continue;
-            }
+        // Container boundary protection: Inner safe zone
+        // Discards the outer perimeter of the container to eliminate squircle/circle antialiased border rings,
+        // bevels, and drop-shadows completely (eliminates the double border / outline bug!)
+        float cx = (minX + maxX) / 2f;
+        float cy = (minY + maxY) / 2f;
+        float maxAllowedRadiusX = (bw / 2f) * 0.82f;
+        float maxAllowedRadiusY = (bh / 2f) * 0.82f;
+        int padX = Math.max(4, (int) (bw * 0.09f));
+        int padY = Math.max(4, (int) (bh * 0.09f));
 
-            int pr = (p >> 16) & 0xff;
-            int pg = (p >> 8) & 0xff;
-            int pb = p & 0xff;
+        for (int y = minY + padY; y <= maxY - padY; y++) {
+            float v = (bh > 1) ? (float) (y - minY) / (bh - 1) : 0f;
+            float dy = y - cy;
+            for (int x = minX + padX; x <= maxX - padX; x++) {
+                float dx = x - cx;
+                if ((dx * dx) / (maxAllowedRadiusX * maxAllowedRadiusX) + (dy * dy) / (maxAllowedRadiusY * maxAllowedRadiusY) > 1.0f) {
+                    continue;
+                }
 
-            int diff = Math.abs(pr - bgR) + Math.abs(pg - bgG) + Math.abs(pb - bgB);
+                float u = (bw > 1) ? (float) (x - minX) / (bw - 1) : 0f;
+                int idx = y * w + x;
+                int p = pixels[idx];
+                int a = (p >>> 24) & 0xff;
+                if (a < 35) {
+                    continue;
+                }
 
-            if (diff < 45) {
-                candidatePixels[i] = 0;
-            } else {
-                glyphPixelCount++;
-                int symbolAlpha = Math.min(255, (diff - 45) * 5);
-                int finalAlpha = (a * symbolAlpha) / 255;
-                candidatePixels[i] = (finalAlpha << 24) | (tr << 16) | (tg << 8) | tb;
+                int pr = (p >> 16) & 0xff;
+                int pg = (p >> 8) & 0xff;
+                int pb = p & 0xff;
+
+                // Bilinear interpolated background color at (x, y)
+                float bgR = (1 - u) * (1 - v) * tlR + u * (1 - v) * trR + (1 - u) * v * blR + u * v * brR;
+                float bgG = (1 - u) * (1 - v) * tlG + u * (1 - v) * trG + (1 - u) * v * blG + u * v * brG;
+                float bgB = (1 - u) * (1 - v) * tlB + u * (1 - v) * trB + (1 - u) * v * blB + u * v * brB;
+
+                float diff = Math.abs(pr - bgR) + Math.abs(pg - bgG) + Math.abs(pb - bgB);
+
+                if (diff >= 42f) {
+                    glyphPixelCount++;
+                    int symbolAlpha = Math.min(255, (int) ((diff - 42f) * 6f));
+                    int finalAlpha = (a * symbolAlpha) / 255;
+                    candidatePixels[idx] = (finalAlpha << 24) | (tr << 16) | (tg << 8) | tb;
+                }
             }
         }
 
-        float ratio = (float) glyphPixelCount / (float) (w * h);
-
-        if (ratio >= 0.015f && ratio <= 0.60f) {
+        float glyphRatio = (float) glyphPixelCount / bboxArea;
+        if (glyphRatio >= 0.008f && glyphRatio <= 0.60f) {
             Bitmap result = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
             result.setPixels(candidatePixels, 0, w, 0, 0, w, h);
             return result;
         }
 
-        // Return null to trigger the safe stock fallback
+        // Fallback: Luminance contrast extraction around center (also protected from outer rim)
+        Bitmap result = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
+        int centerSum = 0, centerCount = 0;
+        int cyStart = Math.max(minY, (int) (cy - bh / 4));
+        int cyEnd = Math.min(maxY, (int) (cy + bh / 4));
+        int cxStart = Math.max(minX, (int) (cx - bw / 4));
+        int cxEnd = Math.min(maxX, (int) (cx + bw / 4));
+
+        for (int y = cyStart; y <= cyEnd; y++) {
+            for (int x = cxStart; x <= cxEnd; x++) {
+                int p = pixels[y * w + x];
+                centerSum += (((p >> 16) & 0xff) + ((p >> 8) & 0xff) + (p & 0xff)) / 3;
+                centerCount++;
+            }
+        }
+        int avgLuma = centerCount > 0 ? centerSum / centerCount : 128;
+
+        int[] lumaPixels = new int[w * h];
+        int lumaCount = 0;
+        for (int y = minY + padY; y <= maxY - padY; y++) {
+            float dy = y - cy;
+            for (int x = minX + padX; x <= maxX - padX; x++) {
+                float dx = x - cx;
+                if ((dx * dx) / (maxAllowedRadiusX * maxAllowedRadiusX) + (dy * dy) / (maxAllowedRadiusY * maxAllowedRadiusY) > 1.0f) {
+                    continue;
+                }
+                int idx = y * w + x;
+                int p = pixels[idx];
+                int a = (p >>> 24) & 0xff;
+                if (a < 35) continue;
+                int luma = (((p >> 16) & 0xff) + ((p >> 8) & 0xff) + (p & 0xff)) / 3;
+                int diff = Math.abs(luma - avgLuma);
+                if (diff > 25) {
+                    lumaCount++;
+                    int alpha = Math.min(255, diff * 5);
+                    lumaPixels[idx] = (alpha << 24) | (tr << 16) | (tg << 8) | tb;
+                }
+            }
+        }
+
+        float lumaRatio = (float) lumaCount / bboxArea;
+        if (lumaRatio >= 0.008f && lumaRatio <= 0.60f) {
+            result.setPixels(lumaPixels, 0, w, 0, 0, w, h);
+            return result;
+        }
+
+        // Return null to allow renderAppIcon to safely render the crisp stock original icon!
         return null;
     }
 
@@ -1001,18 +1228,26 @@ public class IconThemeEngine {
 
     public static File buildHyperOSThemeZip(Context context, int shapeIndex, int themeIndex,
                                            int styleIndex, int opacityPercent, int fillPercent) throws Exception {
-        return buildHyperOSThemeZip(context, shapeIndex, themeIndex, styleIndex, opacityPercent, fillPercent, 36);
+        return buildHyperOSThemeZip(context, shapeIndex, themeIndex, styleIndex, opacityPercent, fillPercent, 36, 0, false, 0, false);
     }
 
     public static File buildHyperOSThemeZip(Context context, int shapeIndex, int themeIndex,
                                            int styleIndex, int opacityPercent, int fillPercent,
                                            int cornerRadius) throws Exception {
+        return buildHyperOSThemeZip(context, shapeIndex, themeIndex, styleIndex, opacityPercent, fillPercent, cornerRadius, 0, false, 0, false);
+    }
+
+    public static File buildHyperOSThemeZip(Context context, int shapeIndex, int themeIndex,
+                                           int styleIndex, int opacityPercent, int fillPercent,
+                                           int cornerRadius,
+                                           int customPlateColor, boolean useCustomPlate,
+                                           int customGlyphColor, boolean useCustomGlyph) throws Exception {
         File outFile = new File(context.getCacheDir(), "hyperos_icons.zip");
         if (outFile.exists()) outFile.delete();
 
         int size = 235; // Standard flat icon size
 
-        Bitmap plateBitmap = createPlateBitmap(context, shapeIndex, themeIndex, opacityPercent, cornerRadius, size);
+        Bitmap plateBitmap = createPlateBitmap(context, shapeIndex, themeIndex, opacityPercent, cornerRadius, size, customPlateColor, useCustomPlate);
         Bitmap maskBitmap = createMaskBitmap(shapeIndex, cornerRadius, size);
         Bitmap emptyBitmap = Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_8888);
 
@@ -1028,9 +1263,9 @@ public class IconThemeEngine {
         ZipOutputStream zos = new ZipOutputStream(new BufferedOutputStream(new FileOutputStream(outFile)));
         Set<String> added = new HashSet<String>();
 
-        // 1. Master compositing templates (clean, NO BORDER)
-        writeZipEntry(zos, "icon_background.png", plateBytes.toByteArray(), added);
-        writeZipEntry(zos, "icon_mask.png", maskBytes.toByteArray(), added);
+        // 1. Master compositing templates (clean, NO BORDER, NO BACKGROUND DUPLICATION)
+        writeZipEntry(zos, "icon_background.png", emptyBytes.toByteArray(), added);
+        writeZipEntry(zos, "icon_mask.png", emptyBytes.toByteArray(), added);
         writeZipEntry(zos, "icon_border.png", emptyBytes.toByteArray(), added);
         writeZipEntry(zos, "icon_pattern.png", emptyBytes.toByteArray(), added);
         writeZipEntry(zos, "icon_folder.png", plateBytes.toByteArray(), added);
@@ -1041,12 +1276,10 @@ public class IconThemeEngine {
         // SupportLayerIcon=false: Ensures HyperOS renders all icons as pure transparent flat icons
         // without forcing AdaptiveIconDrawable (which draws solid black underneath semi-transparent layers!)
         // UseDynamicIcon=false: Disables live animated MAML scripts so our Monet clock & calendar display cleanly!
-        String svgPath = getShapeSvgPath(shapeIndex, cornerRadius);
         String xmlConfig = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" +
                 "<IconTransform>\n" +
                 "    <Config name=\"SupportLayerIcon\" value=\"false\" />\n" +
                 "    <Config name=\"UseDynamicIcon\" value=\"false\" />\n" +
-                "    <Config name=\"ConfigIconMask\" value=\"" + svgPath + "\" />\n" +
                 "</IconTransform>";
         writeZipEntry(zos, "transform_config.xml", xmlConfig.getBytes("UTF-8"), added);
 
@@ -1063,7 +1296,8 @@ public class IconThemeEngine {
         }
 
         Bitmap phoneIcon = renderAppIcon(context, dialerStock, "com.android.contacts", "com.android.contacts.activities.TwelveKeyDialer",
-                shapeIndex, themeIndex, styleIndex, opacityPercent, fillPercent, cornerRadius, size);
+                shapeIndex, themeIndex, styleIndex, opacityPercent, fillPercent, cornerRadius, size,
+                customPlateColor, useCustomPlate, customGlyphColor, useCustomGlyph);
         ByteArrayOutputStream phoneStream = new ByteArrayOutputStream();
         phoneIcon.compress(Bitmap.CompressFormat.PNG, 100, phoneStream);
         byte[] phoneBytes = phoneStream.toByteArray();
@@ -1078,7 +1312,8 @@ public class IconThemeEngine {
         }
 
         Bitmap contactsIcon = renderAppIcon(context, contactsStock, "com.android.contacts", "com.android.contacts.activities.PeopleActivity",
-                shapeIndex, themeIndex, styleIndex, opacityPercent, fillPercent, cornerRadius, size);
+                shapeIndex, themeIndex, styleIndex, opacityPercent, fillPercent, cornerRadius, size,
+                customPlateColor, useCustomPlate, customGlyphColor, useCustomGlyph);
         ByteArrayOutputStream contactsStream = new ByteArrayOutputStream();
         contactsIcon.compress(Bitmap.CompressFormat.PNG, 100, contactsStream);
         byte[] contactsBytes = contactsStream.toByteArray();
@@ -1145,7 +1380,8 @@ public class IconThemeEngine {
 
         // Pre-generate Clock and Calendar flat entries
         Bitmap clockIcon = renderAppIcon(context, null, "com.android.deskclock", "com.android.deskclock.DeskClockTabActivity",
-                shapeIndex, themeIndex, styleIndex, opacityPercent, fillPercent, cornerRadius, size);
+                shapeIndex, themeIndex, styleIndex, opacityPercent, fillPercent, cornerRadius, size,
+                customPlateColor, useCustomPlate, customGlyphColor, useCustomGlyph);
         ByteArrayOutputStream clockStream = new ByteArrayOutputStream();
         clockIcon.compress(Bitmap.CompressFormat.PNG, 100, clockStream);
         byte[] clockBytes = clockStream.toByteArray();
@@ -1159,7 +1395,8 @@ public class IconThemeEngine {
         writeZipEntry(zos, "com.android.deskclock/.DeskClockTabActivity", clockBytes, added);
 
         Bitmap calIcon = renderAppIcon(context, null, "com.xiaomi.calendar", "com.android.calendar.homepage.AllInOneActivity",
-                shapeIndex, themeIndex, styleIndex, opacityPercent, fillPercent, cornerRadius, size);
+                shapeIndex, themeIndex, styleIndex, opacityPercent, fillPercent, cornerRadius, size,
+                customPlateColor, useCustomPlate, customGlyphColor, useCustomGlyph);
         ByteArrayOutputStream calStream = new ByteArrayOutputStream();
         calIcon.compress(Bitmap.CompressFormat.PNG, 100, calStream);
         byte[] calBytes = calStream.toByteArray();
@@ -1184,7 +1421,8 @@ public class IconThemeEngine {
                     Drawable stockIcon = info.loadIcon(pm);
 
                     Bitmap themedBitmap = renderAppIcon(context, stockIcon, pkg, cls, shapeIndex, themeIndex,
-                            styleIndex, opacityPercent, fillPercent, cornerRadius, size);
+                            styleIndex, opacityPercent, fillPercent, cornerRadius, size,
+                            customPlateColor, useCustomPlate, customGlyphColor, useCustomGlyph);
                     ByteArrayOutputStream iconStream = new ByteArrayOutputStream();
                     themedBitmap.compress(Bitmap.CompressFormat.PNG, 100, iconStream);
                     byte[] iconBytes = iconStream.toByteArray();
@@ -1229,7 +1467,8 @@ public class IconThemeEngine {
                 if (!added.contains(cPkg) || !added.contains(cPkg + ".png")) {
                     Drawable cIcon = pm.getApplicationIcon(cPkg);
                     Bitmap themedBitmap = renderAppIcon(context, cIcon, cPkg, null, shapeIndex, themeIndex,
-                            styleIndex, opacityPercent, fillPercent, cornerRadius, size);
+                            styleIndex, opacityPercent, fillPercent, cornerRadius, size,
+                            customPlateColor, useCustomPlate, customGlyphColor, useCustomGlyph);
                     ByteArrayOutputStream iconStream = new ByteArrayOutputStream();
                     themedBitmap.compress(Bitmap.CompressFormat.PNG, 100, iconStream);
                     byte[] iconBytes = iconStream.toByteArray();
@@ -1238,6 +1477,30 @@ public class IconThemeEngine {
                 }
             } catch (Throwable ignored) {}
         }
+
+        // 5. Query ALL installed packages on the device so NO app is ever missed!
+        try {
+            List<android.content.pm.PackageInfo> allInstalled = pm.getInstalledPackages(0);
+            if (allInstalled != null) {
+                for (android.content.pm.PackageInfo pInfo : allInstalled) {
+                    if (pInfo == null || pInfo.packageName == null) continue;
+                    String ipkg = pInfo.packageName;
+                    if (!added.contains(ipkg) || !added.contains(ipkg + ".png")) {
+                        try {
+                            Drawable cIcon = pm.getApplicationIcon(ipkg);
+                            Bitmap themedBitmap = renderAppIcon(context, cIcon, ipkg, null, shapeIndex, themeIndex,
+                                    styleIndex, opacityPercent, fillPercent, cornerRadius, size,
+                                    customPlateColor, useCustomPlate, customGlyphColor, useCustomGlyph);
+                            ByteArrayOutputStream iconStream = new ByteArrayOutputStream();
+                            themedBitmap.compress(Bitmap.CompressFormat.PNG, 100, iconStream);
+                            byte[] iconBytes = iconStream.toByteArray();
+
+                            writeAppEntries(zos, iconBytes, ipkg, null, added);
+                        } catch (Throwable ignored) {}
+                    }
+                }
+            }
+        } catch (Throwable ignored) {}
 
         zos.close();
         return outFile;

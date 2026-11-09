@@ -25,26 +25,37 @@ public final class R {
         public static final int iconmask=0x7f020002;
     }
     public static final class id {
-        public static final int btn_apply_hyperos=0x7f08000e;
-        public static final int btn_apply_launcher=0x7f080010;
-        public static final int btn_restore_hyperos=0x7f08000f;
+        public static final int btn_apply_hyperos=0x7f080014;
+        public static final int btn_apply_launcher=0x7f080016;
+        public static final int btn_pick_glyph_color=0x7f080008;
+        public static final int btn_pick_plate_color=0x7f08000b;
+        public static final int btn_restore_hyperos=0x7f080015;
+        public static final int color_preview_swatch=0x7f080019;
+        public static final int color_wheel=0x7f080017;
+        public static final int layout_glyph_color=0x7f080007;
         public static final int preview_icon1=0x7f080000;
         public static final int preview_icon2=0x7f080001;
         public static final int preview_icon3=0x7f080002;
         public static final int preview_icon4=0x7f080003;
         public static final int preview_icon5=0x7f080004;
-        public static final int seekbar_fill=0x7f08000d;
-        public static final int seekbar_opacity=0x7f080009;
-        public static final int seekbar_radius=0x7f08000b;
+        public static final int seek_brightness=0x7f080018;
+        public static final int seekbar_fill=0x7f080013;
+        public static final int seekbar_opacity=0x7f08000f;
+        public static final int seekbar_radius=0x7f080011;
         public static final int spinner_shape=0x7f080005;
         public static final int spinner_style=0x7f080006;
-        public static final int spinner_theme=0x7f080007;
-        public static final int tv_fill_label=0x7f08000c;
-        public static final int tv_opacity_label=0x7f080008;
-        public static final int tv_radius_label=0x7f08000a;
+        public static final int tv_fill_label=0x7f080012;
+        public static final int tv_glyph_hex=0x7f08000a;
+        public static final int tv_hex_code=0x7f08001a;
+        public static final int tv_opacity_label=0x7f08000e;
+        public static final int tv_plate_hex=0x7f08000d;
+        public static final int tv_radius_label=0x7f080010;
+        public static final int view_glyph_color_preview=0x7f080009;
+        public static final int view_plate_color_preview=0x7f08000c;
     }
     public static final class layout {
         public static final int activity_main=0x7f030000;
+        public static final int dialog_color_picker=0x7f030001;
     }
     public static final class string {
         public static final int app_name=0x7f060000;
