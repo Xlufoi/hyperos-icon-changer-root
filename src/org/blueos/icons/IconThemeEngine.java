@@ -1009,11 +1009,23 @@ public class IconThemeEngine {
         // 2. DYNAMIC / LAYERED ICONS for Xiaomi Apps (dynamic/<pkg>/0.png and 1.png)
         // This solves Dialer, Clock, Calendar, etc. not applying on HyperOS!
         String[][] dynamicApps = {
+                // Phone / Dialer (ALL possible packages and aliases!)
+                {"com.android.phone", "com.android.contacts.activities.TwelveKeyDialer"},
                 {"com.android.contacts", "com.android.contacts.activities.TwelveKeyDialer"},
                 {"com.android.contacts.activities.TwelveKeyDialer", "com.android.contacts.activities.TwelveKeyDialer"},
+                {"com.android.contacts.TwelveKeyDialer", "com.android.contacts.activities.TwelveKeyDialer"},
+                {"com.xiaomi.phone", "com.android.contacts.activities.TwelveKeyDialer"},
+                {"com.google.android.dialer", "com.android.contacts.activities.TwelveKeyDialer"},
+                {"phone", "com.android.contacts.activities.TwelveKeyDialer"},
+                {"dialer", "com.android.contacts.activities.TwelveKeyDialer"},
+                {"TwelveKeyDialer", "com.android.contacts.activities.TwelveKeyDialer"},
+
+                // Clock & Calendar
                 {"com.android.deskclock", "com.android.deskclock.DeskClockTabActivity"},
                 {"com.xiaomi.calendar", "com.android.calendar.homepage.AllInOneActivity"},
                 {"com.android.calendar", "com.android.calendar.homepage.AllInOneActivity"},
+
+                // Core HyperOS Apps
                 {"com.android.camera", "com.android.camera.Camera"},
                 {"com.miui.gallery", "com.miui.gallery.activity.HomePageActivity"},
                 {"com.android.settings", "com.android.settings.MainSettings"},
@@ -1042,13 +1054,27 @@ public class IconThemeEngine {
             writeDynamicLayer(zos, pkg, plate351Bytes, glyph, added);
         }
 
-        // 3. FLAT ICONS: Pre-generate dedicated Phone / Dialer icon
+        // 3. FLAT ICONS: Pre-generate dedicated Phone / Dialer icon under ALL possible names
         Bitmap phoneIcon = renderAppIcon(context, null, "com.android.contacts", "com.android.contacts.activities.TwelveKeyDialer",
                 shapeIndex, themeIndex, styleIndex, opacityPercent, fillPercent, size);
         ByteArrayOutputStream phoneStream = new ByteArrayOutputStream();
         phoneIcon.compress(Bitmap.CompressFormat.PNG, 100, phoneStream);
         byte[] phoneBytes = phoneStream.toByteArray();
 
+        // Write Phone to com.android.phone and com.android.contacts
+        writeZipEntry(zos, "com.android.phone.png", phoneBytes, added);
+        writeZipEntry(zos, "com.android.phone", phoneBytes, added);
+        writeZipEntry(zos, "com.android.phone/.TwelveKeyDialer.png", phoneBytes, added);
+        writeZipEntry(zos, "com.android.phone/.TwelveKeyDialer", phoneBytes, added);
+        writeZipEntry(zos, "com.android.phone/com.android.phone.TwelveKeyDialer.png", phoneBytes, added);
+        writeZipEntry(zos, "com.android.phone/com.android.phone.TwelveKeyDialer", phoneBytes, added);
+        writeZipEntry(zos, "com.android.phone#com.android.phone.TwelveKeyDialer.png", phoneBytes, added);
+        writeZipEntry(zos, "com.android.phone#com.android.phone.TwelveKeyDialer", phoneBytes, added);
+        writeZipEntry(zos, "com.android.phone/.DialtactsActivity.png", phoneBytes, added);
+        writeZipEntry(zos, "com.android.phone/.DialtactsActivity", phoneBytes, added);
+
+        writeZipEntry(zos, "com.android.contacts.png", phoneBytes, added);
+        writeZipEntry(zos, "com.android.contacts", phoneBytes, added);
         writeZipEntry(zos, "com.android.contacts.activities.TwelveKeyDialer.png", phoneBytes, added);
         writeZipEntry(zos, "com.android.contacts.activities.TwelveKeyDialer", phoneBytes, added);
         writeZipEntry(zos, "com.android.contacts.TwelveKeyDialer.png", phoneBytes, added);
@@ -1057,22 +1083,34 @@ public class IconThemeEngine {
         writeZipEntry(zos, "com.android.contacts/.activities.TwelveKeyDialer", phoneBytes, added);
         writeZipEntry(zos, "com.android.contacts/.TwelveKeyDialer.png", phoneBytes, added);
         writeZipEntry(zos, "com.android.contacts/.TwelveKeyDialer", phoneBytes, added);
-        writeZipEntry(zos, "com.android.contacts/.DialtactsContactsEntryActivity.png", phoneBytes, added);
-        writeZipEntry(zos, "com.android.contacts/.DialtactsContactsEntryActivity", phoneBytes, added);
+        writeZipEntry(zos, "com.android.contacts/com.android.contacts.activities.TwelveKeyDialer.png", phoneBytes, added);
+        writeZipEntry(zos, "com.android.contacts/com.android.contacts.activities.TwelveKeyDialer", phoneBytes, added);
+        writeZipEntry(zos, "com.android.contacts/com.android.contacts.TwelveKeyDialer.png", phoneBytes, added);
+        writeZipEntry(zos, "com.android.contacts/com.android.contacts.TwelveKeyDialer", phoneBytes, added);
         writeZipEntry(zos, "com.android.contacts#com.android.contacts.activities.TwelveKeyDialer.png", phoneBytes, added);
         writeZipEntry(zos, "com.android.contacts#com.android.contacts.activities.TwelveKeyDialer", phoneBytes, added);
+        writeZipEntry(zos, "com.android.contacts#com.android.contacts.TwelveKeyDialer.png", phoneBytes, added);
+        writeZipEntry(zos, "com.android.contacts#com.android.contacts.TwelveKeyDialer", phoneBytes, added);
+        writeZipEntry(zos, "com.android.contacts/.DialtactsContactsEntryActivity.png", phoneBytes, added);
+        writeZipEntry(zos, "com.android.contacts/.DialtactsContactsEntryActivity", phoneBytes, added);
+        writeZipEntry(zos, "com.android.contacts/com.android.contacts.DialtactsContactsEntryActivity.png", phoneBytes, added);
+        writeZipEntry(zos, "com.android.contacts/com.android.contacts.DialtactsContactsEntryActivity", phoneBytes, added);
+        writeZipEntry(zos, "com.android.contacts#com.android.contacts.DialtactsContactsEntryActivity.png", phoneBytes, added);
+        writeZipEntry(zos, "com.android.contacts#com.android.contacts.DialtactsContactsEntryActivity", phoneBytes, added);
         writeZipEntry(zos, "TwelveKeyDialer.png", phoneBytes, added);
         writeZipEntry(zos, "TwelveKeyDialer", phoneBytes, added);
         writeZipEntry(zos, "phone.png", phoneBytes, added);
         writeZipEntry(zos, "phone", phoneBytes, added);
         writeZipEntry(zos, "dialer.png", phoneBytes, added);
         writeZipEntry(zos, "dialer", phoneBytes, added);
-        writeZipEntry(zos, "com.android.phone.png", phoneBytes, added);
-        writeZipEntry(zos, "com.android.phone", phoneBytes, added);
         writeZipEntry(zos, "com.xiaomi.phone.png", phoneBytes, added);
         writeZipEntry(zos, "com.xiaomi.phone", phoneBytes, added);
         writeZipEntry(zos, "com.google.android.dialer.png", phoneBytes, added);
         writeZipEntry(zos, "com.google.android.dialer", phoneBytes, added);
+        writeZipEntry(zos, "com.google.android.dialer/.extensions.GoogleDialtactsActivity.png", phoneBytes, added);
+        writeZipEntry(zos, "com.google.android.dialer/.extensions.GoogleDialtactsActivity", phoneBytes, added);
+        writeZipEntry(zos, "com.google.android.dialer/com.google.android.dialer.extensions.GoogleDialtactsActivity.png", phoneBytes, added);
+        writeZipEntry(zos, "com.google.android.dialer/com.google.android.dialer.extensions.GoogleDialtactsActivity", phoneBytes, added);
 
         // Pre-generate Clock and Calendar flat entries
         Bitmap clockIcon = renderAppIcon(context, null, "com.android.deskclock", "com.android.deskclock.DeskClockTabActivity",

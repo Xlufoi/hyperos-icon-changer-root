@@ -251,8 +251,8 @@ public class MainActivity extends Activity {
                             "rm -rf /data/user/0/com.mi.android.globallauncher/cache/* 2>/dev/null ; " +
                             "rm -rf /data/user_de/0/com.mi.android.globallauncher/files/*icon* 2>/dev/null ; " +
                             "rm -rf /data/user/0/com.mi.android.globallauncher/files/*icon* 2>/dev/null ; " +
-                            "rm -rf /data/user_de/0/com.mi.android.globallauncher/databases/*icon* 2>/dev/null ; " +
-                            "rm -rf /data/user/0/com.mi.android.globallauncher/databases/*icon* 2>/dev/null ; " +
+                            "rm -rf /data/user_de/0/com.mi.android.globallauncher/databases/*icon* /data/user/0/com.mi.android.globallauncher/databases/*icon* 2>/dev/null ; " +
+                            "rm -rf /data/user_de/0/com.mi.android.globallauncher/databases/*app_icons* /data/user/0/com.mi.android.globallauncher/databases/*app_icons* 2>/dev/null ; " +
                             "rm -rf /data/user_de/0/com.miui.home/cache/* 2>/dev/null ; " +
                             "rm -rf /data/user/0/com.miui.home/cache/* 2>/dev/null ; " +
                             "rm -rf /data/user_de/0/com.miui.home/files/*icon* 2>/dev/null ; " +
