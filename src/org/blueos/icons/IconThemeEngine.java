@@ -1,5 +1,6 @@
 package org.blueos.icons;
 
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
@@ -1006,24 +1007,45 @@ public class IconThemeEngine {
                 "</IconTransform>";
         writeZipEntry(zos, "transform_config.xml", xmlConfig.getBytes("UTF-8"), added);
 
-        // 2. DYNAMIC / LAYERED ICONS for Xiaomi Apps (dynamic/<pkg>/0.png and 1.png)
-        // This solves Dialer, Clock, Calendar, etc. not applying on HyperOS!
+        // 2. DYNAMIC / LAYERED ICONS for Xiaomi Apps (both <pkg>/0.png and dynamic/<pkg>/0.png)
+        // HyperOS ThemeResourcesSystem queries <pkg>/0.png and <pkg>/1.png directly,
+        // while fallback checks /product/media/theme/miui_mod_icons/dynamic/<pkg>/!
+        // Writing BOTH prevents system mod icons (stock dialer/contacts/clock/calendar) from overriding our theme!
         String[][] dynamicApps = {
-                // Phone / Dialer (ALL possible packages and aliases!)
-                {"com.android.phone", "com.android.contacts.activities.TwelveKeyDialer"},
-                {"com.android.contacts", "com.android.contacts.activities.TwelveKeyDialer"},
+                // Phone / Dialer (ALL possible packages, components, and aliases!)
                 {"com.android.contacts.activities.TwelveKeyDialer", "com.android.contacts.activities.TwelveKeyDialer"},
+                {"com.android.phone", "com.android.contacts.activities.TwelveKeyDialer"},
+                {"com.android.providers.contacts.CallLogProvider", "com.android.contacts.activities.TwelveKeyDialer"},
                 {"com.android.contacts.TwelveKeyDialer", "com.android.contacts.activities.TwelveKeyDialer"},
-                {"com.xiaomi.phone", "com.android.contacts.activities.TwelveKeyDialer"},
-                {"com.google.android.dialer", "com.android.contacts.activities.TwelveKeyDialer"},
+                {"com.android.contacts/.activities.TwelveKeyDialer", "com.android.contacts.activities.TwelveKeyDialer"},
+                {"com.android.contacts/.TwelveKeyDialer", "com.android.contacts.activities.TwelveKeyDialer"},
+                {"com.android.contacts/com.android.contacts.activities.TwelveKeyDialer", "com.android.contacts.activities.TwelveKeyDialer"},
+                {"com.android.contacts#com.android.contacts.activities.TwelveKeyDialer", "com.android.contacts.activities.TwelveKeyDialer"},
+                {"com.android.contacts.DialtactsContactsEntryActivity", "com.android.contacts.activities.TwelveKeyDialer"},
+                {"com.android.contacts/.DialtactsContactsEntryActivity", "com.android.contacts.activities.TwelveKeyDialer"},
+                {"TwelveKeyDialer", "com.android.contacts.activities.TwelveKeyDialer"},
                 {"phone", "com.android.contacts.activities.TwelveKeyDialer"},
                 {"dialer", "com.android.contacts.activities.TwelveKeyDialer"},
-                {"TwelveKeyDialer", "com.android.contacts.activities.TwelveKeyDialer"},
+                {"com.xiaomi.phone", "com.android.contacts.activities.TwelveKeyDialer"},
+                {"com.google.android.dialer", "com.android.contacts.activities.TwelveKeyDialer"},
+
+                // Contacts (Bust glyph)
+                {"com.android.contacts", "com.android.contacts.activities.PeopleActivity"},
+                {"com.android.providers.contacts", "com.android.contacts.activities.PeopleActivity"},
+                {"com.android.contacts.activities.PeopleActivity", "com.android.contacts.activities.PeopleActivity"},
+                {"com.android.contacts/.activities.PeopleActivity", "com.android.contacts.activities.PeopleActivity"},
+                {"com.android.contacts/com.android.contacts.activities.PeopleActivity", "com.android.contacts.activities.PeopleActivity"},
+                {"com.android.contacts#com.android.contacts.activities.PeopleActivity", "com.android.contacts.activities.PeopleActivity"},
+                {"com.android.contacts.PeopleActivity", "com.android.contacts.activities.PeopleActivity"},
+                {"contacts", "com.android.contacts.activities.PeopleActivity"},
 
                 // Clock & Calendar
                 {"com.android.deskclock", "com.android.deskclock.DeskClockTabActivity"},
                 {"com.xiaomi.calendar", "com.android.calendar.homepage.AllInOneActivity"},
                 {"com.android.calendar", "com.android.calendar.homepage.AllInOneActivity"},
+                {"calendar", "com.android.calendar.homepage.AllInOneActivity"},
+                {"deskclock", "com.android.deskclock.DeskClockTabActivity"},
+                {"clock", "com.android.deskclock.DeskClockTabActivity"},
 
                 // Core HyperOS Apps
                 {"com.android.camera", "com.android.camera.Camera"},
@@ -1054,14 +1076,65 @@ public class IconThemeEngine {
             writeDynamicLayer(zos, pkg, plate351Bytes, glyph, added);
         }
 
-        // 3. FLAT ICONS: Pre-generate dedicated Phone / Dialer icon under ALL possible names
-        Bitmap phoneIcon = renderAppIcon(context, null, "com.android.contacts", "com.android.contacts.activities.TwelveKeyDialer",
+        PackageManager pm = context.getPackageManager();
+
+        // 3. FLAT ICONS: Pre-generate dedicated Phone / Dialer and Contacts icons
+        Drawable dialerStock = null;
+        try {
+            dialerStock = pm.getActivityIcon(new ComponentName("com.android.contacts", "com.android.contacts.activities.TwelveKeyDialer"));
+        } catch (Throwable t) {
+            try {
+                dialerStock = pm.getApplicationIcon("com.android.contacts");
+            } catch (Throwable ignored) {}
+        }
+
+        Bitmap phoneIcon = renderAppIcon(context, dialerStock, "com.android.contacts", "com.android.contacts.activities.TwelveKeyDialer",
                 shapeIndex, themeIndex, styleIndex, opacityPercent, fillPercent, size);
         ByteArrayOutputStream phoneStream = new ByteArrayOutputStream();
         phoneIcon.compress(Bitmap.CompressFormat.PNG, 100, phoneStream);
         byte[] phoneBytes = phoneStream.toByteArray();
 
-        // Write Phone to com.android.phone and com.android.contacts
+        Drawable contactsStock = null;
+        try {
+            contactsStock = pm.getActivityIcon(new ComponentName("com.android.contacts", "com.android.contacts.activities.PeopleActivity"));
+        } catch (Throwable t) {
+            try {
+                contactsStock = pm.getApplicationIcon("com.android.contacts");
+            } catch (Throwable ignored) {}
+        }
+
+        Bitmap contactsIcon = renderAppIcon(context, contactsStock, "com.android.contacts", "com.android.contacts.activities.PeopleActivity",
+                shapeIndex, themeIndex, styleIndex, opacityPercent, fillPercent, size);
+        ByteArrayOutputStream contactsStream = new ByteArrayOutputStream();
+        contactsIcon.compress(Bitmap.CompressFormat.PNG, 100, contactsStream);
+        byte[] contactsBytes = contactsStream.toByteArray();
+
+        // Write Phone to all possible entries
+        writeZipEntry(zos, "com.android.contacts.activities.TwelveKeyDialer.png", phoneBytes, added);
+        writeZipEntry(zos, "com.android.contacts.activities.TwelveKeyDialer", phoneBytes, added);
+        writeZipEntry(zos, "com.android.contacts/.activities.TwelveKeyDialer.png", phoneBytes, added);
+        writeZipEntry(zos, "com.android.contacts/.activities.TwelveKeyDialer", phoneBytes, added);
+        writeZipEntry(zos, "com.android.contacts/com.android.contacts.activities.TwelveKeyDialer.png", phoneBytes, added);
+        writeZipEntry(zos, "com.android.contacts/com.android.contacts.activities.TwelveKeyDialer", phoneBytes, added);
+        writeZipEntry(zos, "com.android.contacts#com.android.contacts.activities.TwelveKeyDialer.png", phoneBytes, added);
+        writeZipEntry(zos, "com.android.contacts#com.android.contacts.activities.TwelveKeyDialer", phoneBytes, added);
+        writeZipEntry(zos, "com.android.contacts.TwelveKeyDialer.png", phoneBytes, added);
+        writeZipEntry(zos, "com.android.contacts.TwelveKeyDialer", phoneBytes, added);
+        writeZipEntry(zos, "com.android.contacts/.TwelveKeyDialer.png", phoneBytes, added);
+        writeZipEntry(zos, "com.android.contacts/.TwelveKeyDialer", phoneBytes, added);
+        writeZipEntry(zos, "com.android.contacts/com.android.contacts.TwelveKeyDialer.png", phoneBytes, added);
+        writeZipEntry(zos, "com.android.contacts/com.android.contacts.TwelveKeyDialer", phoneBytes, added);
+        writeZipEntry(zos, "com.android.contacts#com.android.contacts.TwelveKeyDialer.png", phoneBytes, added);
+        writeZipEntry(zos, "com.android.contacts#com.android.contacts.TwelveKeyDialer", phoneBytes, added);
+        writeZipEntry(zos, "com.android.contacts.DialtactsContactsEntryActivity.png", phoneBytes, added);
+        writeZipEntry(zos, "com.android.contacts.DialtactsContactsEntryActivity", phoneBytes, added);
+        writeZipEntry(zos, "com.android.contacts/.DialtactsContactsEntryActivity.png", phoneBytes, added);
+        writeZipEntry(zos, "com.android.contacts/.DialtactsContactsEntryActivity", phoneBytes, added);
+        writeZipEntry(zos, "com.android.contacts/com.android.contacts.DialtactsContactsEntryActivity.png", phoneBytes, added);
+        writeZipEntry(zos, "com.android.contacts/com.android.contacts.DialtactsContactsEntryActivity", phoneBytes, added);
+        writeZipEntry(zos, "com.android.contacts#com.android.contacts.DialtactsContactsEntryActivity.png", phoneBytes, added);
+        writeZipEntry(zos, "com.android.contacts#com.android.contacts.DialtactsContactsEntryActivity", phoneBytes, added);
+
         writeZipEntry(zos, "com.android.phone.png", phoneBytes, added);
         writeZipEntry(zos, "com.android.phone", phoneBytes, added);
         writeZipEntry(zos, "com.android.phone/.TwelveKeyDialer.png", phoneBytes, added);
@@ -1072,31 +1145,9 @@ public class IconThemeEngine {
         writeZipEntry(zos, "com.android.phone#com.android.phone.TwelveKeyDialer", phoneBytes, added);
         writeZipEntry(zos, "com.android.phone/.DialtactsActivity.png", phoneBytes, added);
         writeZipEntry(zos, "com.android.phone/.DialtactsActivity", phoneBytes, added);
+        writeZipEntry(zos, "com.android.providers.contacts.CallLogProvider.png", phoneBytes, added);
+        writeZipEntry(zos, "com.android.providers.contacts.CallLogProvider", phoneBytes, added);
 
-        writeZipEntry(zos, "com.android.contacts.png", phoneBytes, added);
-        writeZipEntry(zos, "com.android.contacts", phoneBytes, added);
-        writeZipEntry(zos, "com.android.contacts.activities.TwelveKeyDialer.png", phoneBytes, added);
-        writeZipEntry(zos, "com.android.contacts.activities.TwelveKeyDialer", phoneBytes, added);
-        writeZipEntry(zos, "com.android.contacts.TwelveKeyDialer.png", phoneBytes, added);
-        writeZipEntry(zos, "com.android.contacts.TwelveKeyDialer", phoneBytes, added);
-        writeZipEntry(zos, "com.android.contacts/.activities.TwelveKeyDialer.png", phoneBytes, added);
-        writeZipEntry(zos, "com.android.contacts/.activities.TwelveKeyDialer", phoneBytes, added);
-        writeZipEntry(zos, "com.android.contacts/.TwelveKeyDialer.png", phoneBytes, added);
-        writeZipEntry(zos, "com.android.contacts/.TwelveKeyDialer", phoneBytes, added);
-        writeZipEntry(zos, "com.android.contacts/com.android.contacts.activities.TwelveKeyDialer.png", phoneBytes, added);
-        writeZipEntry(zos, "com.android.contacts/com.android.contacts.activities.TwelveKeyDialer", phoneBytes, added);
-        writeZipEntry(zos, "com.android.contacts/com.android.contacts.TwelveKeyDialer.png", phoneBytes, added);
-        writeZipEntry(zos, "com.android.contacts/com.android.contacts.TwelveKeyDialer", phoneBytes, added);
-        writeZipEntry(zos, "com.android.contacts#com.android.contacts.activities.TwelveKeyDialer.png", phoneBytes, added);
-        writeZipEntry(zos, "com.android.contacts#com.android.contacts.activities.TwelveKeyDialer", phoneBytes, added);
-        writeZipEntry(zos, "com.android.contacts#com.android.contacts.TwelveKeyDialer.png", phoneBytes, added);
-        writeZipEntry(zos, "com.android.contacts#com.android.contacts.TwelveKeyDialer", phoneBytes, added);
-        writeZipEntry(zos, "com.android.contacts/.DialtactsContactsEntryActivity.png", phoneBytes, added);
-        writeZipEntry(zos, "com.android.contacts/.DialtactsContactsEntryActivity", phoneBytes, added);
-        writeZipEntry(zos, "com.android.contacts/com.android.contacts.DialtactsContactsEntryActivity.png", phoneBytes, added);
-        writeZipEntry(zos, "com.android.contacts/com.android.contacts.DialtactsContactsEntryActivity", phoneBytes, added);
-        writeZipEntry(zos, "com.android.contacts#com.android.contacts.DialtactsContactsEntryActivity.png", phoneBytes, added);
-        writeZipEntry(zos, "com.android.contacts#com.android.contacts.DialtactsContactsEntryActivity", phoneBytes, added);
         writeZipEntry(zos, "TwelveKeyDialer.png", phoneBytes, added);
         writeZipEntry(zos, "TwelveKeyDialer", phoneBytes, added);
         writeZipEntry(zos, "phone.png", phoneBytes, added);
@@ -1111,6 +1162,26 @@ public class IconThemeEngine {
         writeZipEntry(zos, "com.google.android.dialer/.extensions.GoogleDialtactsActivity", phoneBytes, added);
         writeZipEntry(zos, "com.google.android.dialer/com.google.android.dialer.extensions.GoogleDialtactsActivity.png", phoneBytes, added);
         writeZipEntry(zos, "com.google.android.dialer/com.google.android.dialer.extensions.GoogleDialtactsActivity", phoneBytes, added);
+
+        // Write Contacts to all possible entries
+        writeZipEntry(zos, "com.android.contacts.png", contactsBytes, added);
+        writeZipEntry(zos, "com.android.contacts", contactsBytes, added);
+        writeZipEntry(zos, "com.android.providers.contacts.png", contactsBytes, added);
+        writeZipEntry(zos, "com.android.providers.contacts", contactsBytes, added);
+        writeZipEntry(zos, "com.android.contacts.activities.PeopleActivity.png", contactsBytes, added);
+        writeZipEntry(zos, "com.android.contacts.activities.PeopleActivity", contactsBytes, added);
+        writeZipEntry(zos, "com.android.contacts/.activities.PeopleActivity.png", contactsBytes, added);
+        writeZipEntry(zos, "com.android.contacts/.activities.PeopleActivity", contactsBytes, added);
+        writeZipEntry(zos, "com.android.contacts/com.android.contacts.activities.PeopleActivity.png", contactsBytes, added);
+        writeZipEntry(zos, "com.android.contacts/com.android.contacts.activities.PeopleActivity", contactsBytes, added);
+        writeZipEntry(zos, "com.android.contacts#com.android.contacts.activities.PeopleActivity.png", contactsBytes, added);
+        writeZipEntry(zos, "com.android.contacts#com.android.contacts.activities.PeopleActivity", contactsBytes, added);
+        writeZipEntry(zos, "com.android.contacts.PeopleActivity.png", contactsBytes, added);
+        writeZipEntry(zos, "com.android.contacts.PeopleActivity", contactsBytes, added);
+        writeZipEntry(zos, "com.android.contacts/.PeopleActivity.png", contactsBytes, added);
+        writeZipEntry(zos, "com.android.contacts/.PeopleActivity", contactsBytes, added);
+        writeZipEntry(zos, "contacts.png", contactsBytes, added);
+        writeZipEntry(zos, "contacts", contactsBytes, added);
 
         // Pre-generate Clock and Calendar flat entries
         Bitmap clockIcon = renderAppIcon(context, null, "com.android.deskclock", "com.android.deskclock.DeskClockTabActivity",
@@ -1138,8 +1209,6 @@ public class IconThemeEngine {
         writeZipEntry(zos, "com.android.calendar", calBytes, added);
         writeZipEntry(zos, "calendar.png", calBytes, added);
         writeZipEntry(zos, "calendar", calBytes, added);
-
-        PackageManager pm = context.getPackageManager();
 
         // 4. Query ALL installed launcher applications on the device
         Intent mainIntent = new Intent(Intent.ACTION_MAIN, null);
@@ -1216,17 +1285,22 @@ public class IconThemeEngine {
 
     private static void writeDynamicLayer(ZipOutputStream zos, String pkg, byte[] plateBytes,
                                           Bitmap glyphLayer, Set<String> added) throws IOException {
+        writeZipEntry(zos, pkg + "/0.png", plateBytes, added);
         writeZipEntry(zos, "dynamic/" + pkg + "/0.png", plateBytes, added);
         if (glyphLayer != null) {
             ByteArrayOutputStream s = new ByteArrayOutputStream();
             glyphLayer.compress(Bitmap.CompressFormat.PNG, 100, s);
-            writeZipEntry(zos, "dynamic/" + pkg + "/1.png", s.toByteArray(), added);
+            byte[] glyphBytes = s.toByteArray();
+            writeZipEntry(zos, pkg + "/1.png", glyphBytes, added);
+            writeZipEntry(zos, "dynamic/" + pkg + "/1.png", glyphBytes, added);
         } else {
             // Empty transparent layer
             Bitmap empty = Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_8888);
             ByteArrayOutputStream s = new ByteArrayOutputStream();
             empty.compress(Bitmap.CompressFormat.PNG, 100, s);
-            writeZipEntry(zos, "dynamic/" + pkg + "/1.png", s.toByteArray(), added);
+            byte[] emptyBytes = s.toByteArray();
+            writeZipEntry(zos, pkg + "/1.png", emptyBytes, added);
+            writeZipEntry(zos, "dynamic/" + pkg + "/1.png", emptyBytes, added);
         }
     }
 
@@ -1275,20 +1349,34 @@ public class IconThemeEngine {
                 writeZipEntry(zos, "com.android.contacts/.activities.TwelveKeyDialer", iconBytes, added);
                 writeZipEntry(zos, "com.android.contacts/.TwelveKeyDialer.png", iconBytes, added);
                 writeZipEntry(zos, "com.android.contacts/.TwelveKeyDialer", iconBytes, added);
+                writeZipEntry(zos, "com.android.contacts/com.android.contacts.activities.TwelveKeyDialer.png", iconBytes, added);
+                writeZipEntry(zos, "com.android.contacts/com.android.contacts.activities.TwelveKeyDialer", iconBytes, added);
+                writeZipEntry(zos, "com.android.contacts#com.android.contacts.activities.TwelveKeyDialer.png", iconBytes, added);
+                writeZipEntry(zos, "com.android.contacts#com.android.contacts.activities.TwelveKeyDialer", iconBytes, added);
+                writeZipEntry(zos, "com.android.contacts.TwelveKeyDialer.png", iconBytes, added);
+                writeZipEntry(zos, "com.android.contacts.TwelveKeyDialer", iconBytes, added);
                 writeZipEntry(zos, "com.android.contacts/.DialtactsContactsEntryActivity.png", iconBytes, added);
                 writeZipEntry(zos, "com.android.contacts/.DialtactsContactsEntryActivity", iconBytes, added);
-                writeZipEntry(zos, "com.android.contacts#com.android.contacts.activities.TwelveKeyDialer.png", iconBytes, added);
+                writeZipEntry(zos, "com.android.phone.png", iconBytes, added);
+                writeZipEntry(zos, "com.android.phone", iconBytes, added);
+                writeZipEntry(zos, "com.android.providers.contacts.CallLogProvider.png", iconBytes, added);
+                writeZipEntry(zos, "com.android.providers.contacts.CallLogProvider", iconBytes, added);
             }
             if (c.contains("people") || c.contains("contact")) {
                 writeZipEntry(zos, "contacts.png", iconBytes, added);
                 writeZipEntry(zos, "contacts", iconBytes, added);
                 writeZipEntry(zos, "com.android.contacts.png", iconBytes, added);
                 writeZipEntry(zos, "com.android.contacts", iconBytes, added);
+                writeZipEntry(zos, "com.android.providers.contacts.png", iconBytes, added);
+                writeZipEntry(zos, "com.android.providers.contacts", iconBytes, added);
                 writeZipEntry(zos, "com.android.contacts/.activities.PeopleActivity.png", iconBytes, added);
                 writeZipEntry(zos, "com.android.contacts/.activities.PeopleActivity", iconBytes, added);
+                writeZipEntry(zos, "com.android.contacts/com.android.contacts.activities.PeopleActivity.png", iconBytes, added);
+                writeZipEntry(zos, "com.android.contacts/com.android.contacts.activities.PeopleActivity", iconBytes, added);
+                writeZipEntry(zos, "com.android.contacts#com.android.contacts.activities.PeopleActivity.png", iconBytes, added);
+                writeZipEntry(zos, "com.android.contacts#com.android.contacts.activities.PeopleActivity", iconBytes, added);
                 writeZipEntry(zos, "com.android.contacts/.PeopleActivity.png", iconBytes, added);
                 writeZipEntry(zos, "com.android.contacts/.PeopleActivity", iconBytes, added);
-                writeZipEntry(zos, "com.android.contacts#com.android.contacts.activities.PeopleActivity.png", iconBytes, added);
             }
         }
 
