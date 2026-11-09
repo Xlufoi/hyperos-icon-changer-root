@@ -24,12 +24,15 @@ public class MainActivity extends Activity {
     private static final String KEY_THEME = "selected_theme";
     private static final String KEY_OPACITY = "selected_opacity";
     private static final String KEY_FILL = "selected_fill";
+    private static final String KEY_RADIUS = "selected_radius";
 
     private Spinner spinnerShape;
     private Spinner spinnerStyle;
     private Spinner spinnerTheme;
     private SeekBar seekbarOpacity;
     private TextView tvOpacityLabel;
+    private SeekBar seekbarRadius;
+    private TextView tvRadiusLabel;
     private SeekBar seekbarFill;
     private TextView tvFillLabel;
     private ImageView[] previewIcons;
@@ -44,6 +47,8 @@ public class MainActivity extends Activity {
         spinnerTheme = findViewById(R.id.spinner_theme);
         seekbarOpacity = findViewById(R.id.seekbar_opacity);
         tvOpacityLabel = findViewById(R.id.tv_opacity_label);
+        seekbarRadius = findViewById(R.id.seekbar_radius);
+        tvRadiusLabel = findViewById(R.id.tv_radius_label);
         seekbarFill = findViewById(R.id.seekbar_fill);
         tvFillLabel = findViewById(R.id.tv_fill_label);
 
@@ -72,10 +77,14 @@ public class MainActivity extends Activity {
         spinnerStyle.setSelection(prefs.getInt(KEY_STYLE, 0)); // Original Colors
         spinnerTheme.setSelection(prefs.getInt(KEY_THEME, 0)); // Monet
         int opacity = prefs.getInt(KEY_OPACITY, 70);
+        int radius = prefs.getInt(KEY_RADIUS, 36);
         int fill = prefs.getInt(KEY_FILL, 65);
 
         seekbarOpacity.setProgress(opacity);
         tvOpacityLabel.setText("Прозрачность подложки: " + opacity + "%");
+
+        seekbarRadius.setProgress(radius);
+        tvRadiusLabel.setText("Скругление углов: " + radius + "%");
 
         seekbarFill.setProgress(fill);
         tvFillLabel.setText("Заполнение картинки: " + fill + "%");
@@ -99,6 +108,30 @@ public class MainActivity extends Activity {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 tvOpacityLabel.setText("Прозрачность подложки: " + progress + "%");
+                if (fromUser) {
+                    saveSettings();
+                    updatePreviews();
+                }
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {}
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {
+                saveSettings();
+                updatePreviews();
+            }
+        });
+
+        seekbarRadius.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                if (progress < 10) {
+                    progress = 10;
+                    seekBar.setProgress(10);
+                }
+                tvRadiusLabel.setText("Скругление углов: " + progress + "%");
                 if (fromUser) {
                     saveSettings();
                     updatePreviews();
@@ -174,6 +207,7 @@ public class MainActivity extends Activity {
                 .putInt(KEY_STYLE, spinnerStyle.getSelectedItemPosition())
                 .putInt(KEY_THEME, spinnerTheme.getSelectedItemPosition())
                 .putInt(KEY_OPACITY, seekbarOpacity.getProgress())
+                .putInt(KEY_RADIUS, seekbarRadius.getProgress())
                 .putInt(KEY_FILL, seekbarFill.getProgress())
                 .apply();
     }
@@ -183,6 +217,7 @@ public class MainActivity extends Activity {
         int styleIdx = spinnerStyle.getSelectedItemPosition();
         int themeIdx = spinnerTheme.getSelectedItemPosition();
         int opacity = seekbarOpacity.getProgress();
+        int radius = seekbarRadius.getProgress();
         int fill = seekbarFill.getProgress();
 
         PackageManager pm = getPackageManager();
@@ -211,7 +246,7 @@ public class MainActivity extends Activity {
             }
 
             Bitmap previewBitmap = IconThemeEngine.renderAppIcon(this, stock, pkg, cls, shapeIdx, themeIdx,
-                    styleIdx, opacity, fill, 168);
+                    styleIdx, opacity, fill, radius, 168);
             previewIcons[i].setBackground(null);
             previewIcons[i].setImageBitmap(previewBitmap);
         }
@@ -222,6 +257,7 @@ public class MainActivity extends Activity {
         final int styleIdx = spinnerStyle.getSelectedItemPosition();
         final int themeIdx = spinnerTheme.getSelectedItemPosition();
         final int opacity = seekbarOpacity.getProgress();
+        final int radius = seekbarRadius.getProgress();
         final int fill = seekbarFill.getProgress();
 
         final ProgressDialog dialog = new ProgressDialog(this);
@@ -234,7 +270,7 @@ public class MainActivity extends Activity {
             public void run() {
                 try {
                     File customizedZip = IconThemeEngine.buildHyperOSThemeZip(MainActivity.this,
-                            shapeIdx, themeIdx, styleIdx, opacity, fill);
+                            shapeIdx, themeIdx, styleIdx, opacity, fill, radius);
                     String iconsPath = customizedZip.getAbsolutePath();
 
                     String cmd = "mkdir -p /data/system/theme && " +

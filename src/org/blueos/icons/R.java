@@ -25,21 +25,23 @@ public final class R {
         public static final int iconmask=0x7f020002;
     }
     public static final class id {
-        public static final int btn_apply_hyperos=0x7f08000c;
-        public static final int btn_apply_launcher=0x7f08000e;
-        public static final int btn_restore_hyperos=0x7f08000d;
+        public static final int btn_apply_hyperos=0x7f08000e;
+        public static final int btn_apply_launcher=0x7f080010;
+        public static final int btn_restore_hyperos=0x7f08000f;
         public static final int preview_icon1=0x7f080000;
         public static final int preview_icon2=0x7f080001;
         public static final int preview_icon3=0x7f080002;
         public static final int preview_icon4=0x7f080003;
         public static final int preview_icon5=0x7f080004;
-        public static final int seekbar_fill=0x7f08000b;
+        public static final int seekbar_fill=0x7f08000d;
         public static final int seekbar_opacity=0x7f080009;
+        public static final int seekbar_radius=0x7f08000b;
         public static final int spinner_shape=0x7f080005;
         public static final int spinner_style=0x7f080006;
         public static final int spinner_theme=0x7f080007;
-        public static final int tv_fill_label=0x7f08000a;
+        public static final int tv_fill_label=0x7f08000c;
         public static final int tv_opacity_label=0x7f080008;
+        public static final int tv_radius_label=0x7f08000a;
     }
     public static final class layout {
         public static final int activity_main=0x7f030000;

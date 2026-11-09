@@ -172,6 +172,25 @@
                 android:layout_marginTop="6dp"
                 android:layout_marginBottom="16dp" />
 
+            <!-- Corner Radius Slider -->
+            <TextView
+                android:id="@+id/tv_radius_label"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Скругление углов: 36%"
+                android:textColor="@color/text_primary"
+                android:textSize="14sp"
+                android:textStyle="bold" />
+
+            <SeekBar
+                android:id="@+id/seekbar_radius"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:max="50"
+                android:progress="36"
+                android:layout_marginTop="6dp"
+                android:layout_marginBottom="16dp" />
+
             <!-- Fill / Scale Slider -->
             <TextView
                 android:id="@+id/tv_fill_label"

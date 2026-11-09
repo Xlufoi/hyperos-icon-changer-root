@@ -76,25 +76,34 @@ public class IconThemeEngine {
     };
 
     public static Path createShapePath(int shapeIndex, float width, float height) {
+        return createShapePath(shapeIndex, width, height, 36);
+    }
+
+    public static Path createShapePath(int shapeIndex, float width, float height, int cornerRadius) {
         Path path = new Path();
         float r = Math.min(width, height) / 2f;
         float cx = width / 2f;
         float cy = height / 2f;
+        float crFraction = Math.max(0.10f, Math.min(0.50f, cornerRadius / 100f));
+        float rx = width * crFraction;
+        float ry = height * crFraction;
 
         switch (shapeIndex) {
             case 0: // Circle
                 path.addCircle(cx, cy, r, Path.Direction.CW);
                 break;
-            case 1: // Squircle
+            case 1: // Squircle (Organic continuous curvature)
+                float cp1 = width * (crFraction * 0.52f);
+                float cp2 = width * (1f - crFraction * 0.52f);
                 path.moveTo(cx, 0);
-                path.cubicTo(width * 0.10f, 0, 0, height * 0.10f, 0, cy);
-                path.cubicTo(0, height * 0.90f, width * 0.10f, height, cx, height);
-                path.cubicTo(width * 0.90f, height, width, height * 0.90f, width, cy);
-                path.cubicTo(width, height * 0.10f, width * 0.90f, 0, cx, 0);
+                path.cubicTo(cp1, 0, 0, cp1, 0, cy);
+                path.cubicTo(0, cp2, cp1, height, cx, height);
+                path.cubicTo(cp2, height, width, cp2, width, cy);
+                path.cubicTo(width, cp1, cp2, 0, cx, 0);
                 path.close();
                 break;
-            case 2: // Rounded Square
-                path.addRoundRect(new RectF(0, 0, width, height), width * 0.24f, height * 0.24f, Path.Direction.CW);
+            case 2: // Rounded Square (Modern smooth AOSP rounded square)
+                path.addRoundRect(new RectF(0, 0, width, height), rx, ry, Path.Direction.CW);
                 break;
             case 3: // Teardrop Left
                 path.moveTo(cx, 0);
@@ -145,6 +154,26 @@ public class IconThemeEngine {
         return path;
     }
 
+    public static String getShapeSvgPath(int shapeIndex, int cornerRadius) {
+        float cr = Math.max(10f, Math.min(50f, cornerRadius));
+        if (shapeIndex == 0) {
+            return "M 50,0 A 50,50 0 1,1 50,100 A 50,50 0 1,1 50,0 Z";
+        } else if (shapeIndex == 1) {
+            float cp = cr * 0.52f;
+            return String.format(java.util.Locale.US,
+                "M 50,0 C %.2f,0 0,%.2f 0,50 C 0,%.2f %.2f,100 50,100 C %.2f,100 100,%.2f 100,50 C 100,%.2f %.2f,0 50,0 Z",
+                cp, cp, 100f - cp, cp, 100f - cp, 100f - cp, cp, 100f - cp);
+        } else if (shapeIndex == 2) {
+            return String.format(java.util.Locale.US,
+                "M %.2f,0 L %.2f,0 C %.2f,0 100,%.2f 100,%.2f L 100,%.2f C 100,%.2f %.2f,100 %.2f,100 L %.2f,100 C %.2f,100 0,%.2f 0,%.2f L 0,%.2f C 0,%.2f %.2f,0 %.2f,0 Z",
+                cr, 100f - cr, 100f - cr * 0.45f, cr * 0.45f, cr,
+                100f - cr, 100f - cr * 0.45f, 100f - cr * 0.45f, 100f - cr,
+                cr, cr * 0.45f, 100f - cr * 0.45f, 100f - cr,
+                cr, cr * 0.45f, cr * 0.45f, cr);
+        }
+        return SHAPE_SVG_PATHS[Math.min(shapeIndex, SHAPE_SVG_PATHS.length - 1)];
+    }
+
     public static int getPlateColor(Context context, int themeIndex, int opacityPercent) {
         int alpha = (int) (255 * (opacityPercent / 100f));
         alpha = Math.max(0, Math.min(255, alpha));
@@ -190,9 +219,13 @@ public class IconThemeEngine {
     }
 
     public static Bitmap createPlateBitmap(Context context, int shapeIndex, int themeIndex, int opacityPercent, int size) {
+        return createPlateBitmap(context, shapeIndex, themeIndex, opacityPercent, 36, size);
+    }
+
+    public static Bitmap createPlateBitmap(Context context, int shapeIndex, int themeIndex, int opacityPercent, int cornerRadius, int size) {
         Bitmap bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888);
         Canvas canvas = new Canvas(bitmap);
-        Path path = createShapePath(shapeIndex, size, size);
+        Path path = createShapePath(shapeIndex, size, size, cornerRadius);
         int plateColor = getPlateColor(context, themeIndex, opacityPercent);
         if (Color.alpha(plateColor) > 0) {
             Paint fillPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -204,9 +237,13 @@ public class IconThemeEngine {
     }
 
     public static Bitmap createMaskBitmap(int shapeIndex, int size) {
+        return createMaskBitmap(shapeIndex, 36, size);
+    }
+
+    public static Bitmap createMaskBitmap(int shapeIndex, int cornerRadius, int size) {
         Bitmap bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888);
         Canvas canvas = new Canvas(bitmap);
-        Path path = createShapePath(shapeIndex, size, size);
+        Path path = createShapePath(shapeIndex, size, size, cornerRadius);
         Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
         paint.setColor(0xFFFFFFFF);
         paint.setStyle(Paint.Style.FILL);
@@ -632,11 +669,17 @@ public class IconThemeEngine {
     public static Bitmap renderAppIcon(Context context, Drawable icon, String pkg, String cls,
                                       int shapeIndex, int themeIndex, int styleIndex,
                                       int opacityPercent, int fillPercent, int size) {
+        return renderAppIcon(context, icon, pkg, cls, shapeIndex, themeIndex, styleIndex, opacityPercent, fillPercent, 36, size);
+    }
+
+    public static Bitmap renderAppIcon(Context context, Drawable icon, String pkg, String cls,
+                                      int shapeIndex, int themeIndex, int styleIndex,
+                                      int opacityPercent, int fillPercent, int cornerRadius, int size) {
         Bitmap bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888);
         Canvas canvas = new Canvas(bitmap);
 
         // 1. Draw Plate (no borders)
-        Path path = createShapePath(shapeIndex, size, size);
+        Path path = createShapePath(shapeIndex, size, size, cornerRadius);
         int plateColor = getPlateColor(context, themeIndex, opacityPercent);
         if (Color.alpha(plateColor) > 0) {
             Paint fillPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -958,14 +1001,19 @@ public class IconThemeEngine {
 
     public static File buildHyperOSThemeZip(Context context, int shapeIndex, int themeIndex,
                                            int styleIndex, int opacityPercent, int fillPercent) throws Exception {
+        return buildHyperOSThemeZip(context, shapeIndex, themeIndex, styleIndex, opacityPercent, fillPercent, 36);
+    }
+
+    public static File buildHyperOSThemeZip(Context context, int shapeIndex, int themeIndex,
+                                           int styleIndex, int opacityPercent, int fillPercent,
+                                           int cornerRadius) throws Exception {
         File outFile = new File(context.getCacheDir(), "hyperos_icons.zip");
         if (outFile.exists()) outFile.delete();
 
         int size = 235; // Standard flat icon size
-        int layerSize = 351; // Standard HyperOS dynamic layer size
 
-        Bitmap plateBitmap = createPlateBitmap(context, shapeIndex, themeIndex, opacityPercent, size);
-        Bitmap maskBitmap = createMaskBitmap(shapeIndex, size);
+        Bitmap plateBitmap = createPlateBitmap(context, shapeIndex, themeIndex, opacityPercent, cornerRadius, size);
+        Bitmap maskBitmap = createMaskBitmap(shapeIndex, cornerRadius, size);
         Bitmap emptyBitmap = Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_8888);
 
         ByteArrayOutputStream plateBytes = new ByteArrayOutputStream();
@@ -976,12 +1024,6 @@ public class IconThemeEngine {
 
         ByteArrayOutputStream emptyBytes = new ByteArrayOutputStream();
         emptyBitmap.compress(Bitmap.CompressFormat.PNG, 100, emptyBytes);
-
-        // 351x351 plate for dynamic layer 0.png
-        Bitmap plate351 = createPlateBitmap(context, shapeIndex, themeIndex, opacityPercent, layerSize);
-        ByteArrayOutputStream plate351Stream = new ByteArrayOutputStream();
-        plate351.compress(Bitmap.CompressFormat.PNG, 100, plate351Stream);
-        byte[] plate351Bytes = plate351Stream.toByteArray();
 
         ZipOutputStream zos = new ZipOutputStream(new BufferedOutputStream(new FileOutputStream(outFile)));
         Set<String> added = new HashSet<String>();
@@ -996,89 +1038,21 @@ public class IconThemeEngine {
         writeZipEntry(zos, "sym_def_app_icon.png", plateBytes.toByteArray(), added);
 
         // transform_config.xml:
-        // SupportLayerIcon=true: HyperOS loads 0.png (plate) and 1.png (glyph) for dynamic apps
+        // SupportLayerIcon=false: Ensures HyperOS renders all icons as pure transparent flat icons
+        // without forcing AdaptiveIconDrawable (which draws solid black underneath semi-transparent layers!)
         // UseDynamicIcon=false: Disables live animated MAML scripts so our Monet clock & calendar display cleanly!
-        String svgPath = SHAPE_SVG_PATHS[Math.min(shapeIndex, SHAPE_SVG_PATHS.length - 1)];
+        String svgPath = getShapeSvgPath(shapeIndex, cornerRadius);
         String xmlConfig = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" +
                 "<IconTransform>\n" +
-                "    <Config name=\"SupportLayerIcon\" value=\"true\" />\n" +
+                "    <Config name=\"SupportLayerIcon\" value=\"false\" />\n" +
                 "    <Config name=\"UseDynamicIcon\" value=\"false\" />\n" +
                 "    <Config name=\"ConfigIconMask\" value=\"" + svgPath + "\" />\n" +
                 "</IconTransform>";
         writeZipEntry(zos, "transform_config.xml", xmlConfig.getBytes("UTF-8"), added);
 
-        // 2. DYNAMIC / LAYERED ICONS for Xiaomi Apps (both <pkg>/0.png and dynamic/<pkg>/0.png)
-        // HyperOS ThemeResourcesSystem queries <pkg>/0.png and <pkg>/1.png directly,
-        // while fallback checks /product/media/theme/miui_mod_icons/dynamic/<pkg>/!
-        // Writing BOTH prevents system mod icons (stock dialer/contacts/clock/calendar) from overriding our theme!
-        String[][] dynamicApps = {
-                // Phone / Dialer (ALL possible packages, components, and aliases!)
-                {"com.android.contacts.activities.TwelveKeyDialer", "com.android.contacts.activities.TwelveKeyDialer"},
-                {"com.android.phone", "com.android.contacts.activities.TwelveKeyDialer"},
-                {"com.android.providers.contacts.CallLogProvider", "com.android.contacts.activities.TwelveKeyDialer"},
-                {"com.android.contacts.TwelveKeyDialer", "com.android.contacts.activities.TwelveKeyDialer"},
-                {"com.android.contacts/.activities.TwelveKeyDialer", "com.android.contacts.activities.TwelveKeyDialer"},
-                {"com.android.contacts/.TwelveKeyDialer", "com.android.contacts.activities.TwelveKeyDialer"},
-                {"com.android.contacts/com.android.contacts.activities.TwelveKeyDialer", "com.android.contacts.activities.TwelveKeyDialer"},
-                {"com.android.contacts#com.android.contacts.activities.TwelveKeyDialer", "com.android.contacts.activities.TwelveKeyDialer"},
-                {"com.android.contacts.DialtactsContactsEntryActivity", "com.android.contacts.activities.TwelveKeyDialer"},
-                {"com.android.contacts/.DialtactsContactsEntryActivity", "com.android.contacts.activities.TwelveKeyDialer"},
-                {"TwelveKeyDialer", "com.android.contacts.activities.TwelveKeyDialer"},
-                {"phone", "com.android.contacts.activities.TwelveKeyDialer"},
-                {"dialer", "com.android.contacts.activities.TwelveKeyDialer"},
-                {"com.xiaomi.phone", "com.android.contacts.activities.TwelveKeyDialer"},
-                {"com.google.android.dialer", "com.android.contacts.activities.TwelveKeyDialer"},
-
-                // Contacts (Bust glyph)
-                {"com.android.contacts", "com.android.contacts.activities.PeopleActivity"},
-                {"com.android.providers.contacts", "com.android.contacts.activities.PeopleActivity"},
-                {"com.android.contacts.activities.PeopleActivity", "com.android.contacts.activities.PeopleActivity"},
-                {"com.android.contacts/.activities.PeopleActivity", "com.android.contacts.activities.PeopleActivity"},
-                {"com.android.contacts/com.android.contacts.activities.PeopleActivity", "com.android.contacts.activities.PeopleActivity"},
-                {"com.android.contacts#com.android.contacts.activities.PeopleActivity", "com.android.contacts.activities.PeopleActivity"},
-                {"com.android.contacts.PeopleActivity", "com.android.contacts.activities.PeopleActivity"},
-                {"contacts", "com.android.contacts.activities.PeopleActivity"},
-
-                // Clock & Calendar
-                {"com.android.deskclock", "com.android.deskclock.DeskClockTabActivity"},
-                {"com.xiaomi.calendar", "com.android.calendar.homepage.AllInOneActivity"},
-                {"com.android.calendar", "com.android.calendar.homepage.AllInOneActivity"},
-                {"calendar", "com.android.calendar.homepage.AllInOneActivity"},
-                {"deskclock", "com.android.deskclock.DeskClockTabActivity"},
-                {"clock", "com.android.deskclock.DeskClockTabActivity"},
-
-                // Core HyperOS Apps
-                {"com.android.camera", "com.android.camera.Camera"},
-                {"com.miui.gallery", "com.miui.gallery.activity.HomePageActivity"},
-                {"com.android.settings", "com.android.settings.MainSettings"},
-                {"com.miui.weather2", "com.miui.weather2.ActivityWeatherCycle"},
-                {"com.miui.notes", "com.miui.notes.ui.NotesListActivity"},
-                {"com.miui.calculator", "com.miui.calculator.cal.CalculatorActivity"},
-                {"com.miui.securitycenter", "com.miui.securityscan.MainActivity"},
-                {"com.android.fileexplorer", "com.android.fileexplorer.FileExplorerTabActivity"},
-                {"com.mi.android.globalFileexplorer", "com.android.fileexplorer.FileExplorerTabActivity"},
-                {"com.android.mms", "com.android.mms.ui.MmsTabActivity"},
-                {"com.android.browser", "com.android.browser.BrowserActivity"},
-                {"com.mi.globalbrowser", "com.android.browser.BrowserActivity"},
-                {"com.miui.player", "com.miui.player.ui.MusicBrowserActivity"},
-                {"com.android.soundrecorder", "com.android.soundrecorder.SoundRecorder"},
-                {"com.miui.compass", "com.miui.compass.CompassActivity"},
-                {"sym_def_app_icon", null}
-        };
-
-        for (String[] da : dynamicApps) {
-            String pkg = da[0];
-            String cls = da[1];
-            Bitmap glyph = null;
-            if (cls != null) {
-                glyph = renderGlyphOnly(context, pkg, cls, styleIndex, fillPercent, layerSize);
-            }
-            writeDynamicLayer(zos, pkg, plate351Bytes, glyph, added);
-        }
-
         PackageManager pm = context.getPackageManager();
 
-        // 3. FLAT ICONS: Pre-generate dedicated Phone / Dialer and Contacts icons
+        // 2. FLAT ICONS: Pre-generate dedicated Phone / Dialer and Contacts icons
         Drawable dialerStock = null;
         try {
             dialerStock = pm.getActivityIcon(new ComponentName("com.android.contacts", "com.android.contacts.activities.TwelveKeyDialer"));
@@ -1089,7 +1063,7 @@ public class IconThemeEngine {
         }
 
         Bitmap phoneIcon = renderAppIcon(context, dialerStock, "com.android.contacts", "com.android.contacts.activities.TwelveKeyDialer",
-                shapeIndex, themeIndex, styleIndex, opacityPercent, fillPercent, size);
+                shapeIndex, themeIndex, styleIndex, opacityPercent, fillPercent, cornerRadius, size);
         ByteArrayOutputStream phoneStream = new ByteArrayOutputStream();
         phoneIcon.compress(Bitmap.CompressFormat.PNG, 100, phoneStream);
         byte[] phoneBytes = phoneStream.toByteArray();
@@ -1104,7 +1078,7 @@ public class IconThemeEngine {
         }
 
         Bitmap contactsIcon = renderAppIcon(context, contactsStock, "com.android.contacts", "com.android.contacts.activities.PeopleActivity",
-                shapeIndex, themeIndex, styleIndex, opacityPercent, fillPercent, size);
+                shapeIndex, themeIndex, styleIndex, opacityPercent, fillPercent, cornerRadius, size);
         ByteArrayOutputStream contactsStream = new ByteArrayOutputStream();
         contactsIcon.compress(Bitmap.CompressFormat.PNG, 100, contactsStream);
         byte[] contactsBytes = contactsStream.toByteArray();
@@ -1134,20 +1108,6 @@ public class IconThemeEngine {
         writeZipEntry(zos, "com.android.contacts/com.android.contacts.DialtactsContactsEntryActivity", phoneBytes, added);
         writeZipEntry(zos, "com.android.contacts#com.android.contacts.DialtactsContactsEntryActivity.png", phoneBytes, added);
         writeZipEntry(zos, "com.android.contacts#com.android.contacts.DialtactsContactsEntryActivity", phoneBytes, added);
-
-        writeZipEntry(zos, "com.android.phone.png", phoneBytes, added);
-        writeZipEntry(zos, "com.android.phone", phoneBytes, added);
-        writeZipEntry(zos, "com.android.phone/.TwelveKeyDialer.png", phoneBytes, added);
-        writeZipEntry(zos, "com.android.phone/.TwelveKeyDialer", phoneBytes, added);
-        writeZipEntry(zos, "com.android.phone/com.android.phone.TwelveKeyDialer.png", phoneBytes, added);
-        writeZipEntry(zos, "com.android.phone/com.android.phone.TwelveKeyDialer", phoneBytes, added);
-        writeZipEntry(zos, "com.android.phone#com.android.phone.TwelveKeyDialer.png", phoneBytes, added);
-        writeZipEntry(zos, "com.android.phone#com.android.phone.TwelveKeyDialer", phoneBytes, added);
-        writeZipEntry(zos, "com.android.phone/.DialtactsActivity.png", phoneBytes, added);
-        writeZipEntry(zos, "com.android.phone/.DialtactsActivity", phoneBytes, added);
-        writeZipEntry(zos, "com.android.providers.contacts.CallLogProvider.png", phoneBytes, added);
-        writeZipEntry(zos, "com.android.providers.contacts.CallLogProvider", phoneBytes, added);
-
         writeZipEntry(zos, "TwelveKeyDialer.png", phoneBytes, added);
         writeZipEntry(zos, "TwelveKeyDialer", phoneBytes, added);
         writeZipEntry(zos, "phone.png", phoneBytes, added);
@@ -1158,10 +1118,10 @@ public class IconThemeEngine {
         writeZipEntry(zos, "com.xiaomi.phone", phoneBytes, added);
         writeZipEntry(zos, "com.google.android.dialer.png", phoneBytes, added);
         writeZipEntry(zos, "com.google.android.dialer", phoneBytes, added);
-        writeZipEntry(zos, "com.google.android.dialer/.extensions.GoogleDialtactsActivity.png", phoneBytes, added);
-        writeZipEntry(zos, "com.google.android.dialer/.extensions.GoogleDialtactsActivity", phoneBytes, added);
-        writeZipEntry(zos, "com.google.android.dialer/com.google.android.dialer.extensions.GoogleDialtactsActivity.png", phoneBytes, added);
-        writeZipEntry(zos, "com.google.android.dialer/com.google.android.dialer.extensions.GoogleDialtactsActivity", phoneBytes, added);
+        writeZipEntry(zos, "com.android.phone.png", phoneBytes, added);
+        writeZipEntry(zos, "com.android.phone", phoneBytes, added);
+        writeZipEntry(zos, "com.android.providers.contacts.CallLogProvider.png", phoneBytes, added);
+        writeZipEntry(zos, "com.android.providers.contacts.CallLogProvider", phoneBytes, added);
 
         // Write Contacts to all possible entries
         writeZipEntry(zos, "com.android.contacts.png", contactsBytes, added);
@@ -1185,7 +1145,7 @@ public class IconThemeEngine {
 
         // Pre-generate Clock and Calendar flat entries
         Bitmap clockIcon = renderAppIcon(context, null, "com.android.deskclock", "com.android.deskclock.DeskClockTabActivity",
-                shapeIndex, themeIndex, styleIndex, opacityPercent, fillPercent, size);
+                shapeIndex, themeIndex, styleIndex, opacityPercent, fillPercent, cornerRadius, size);
         ByteArrayOutputStream clockStream = new ByteArrayOutputStream();
         clockIcon.compress(Bitmap.CompressFormat.PNG, 100, clockStream);
         byte[] clockBytes = clockStream.toByteArray();
@@ -1199,7 +1159,7 @@ public class IconThemeEngine {
         writeZipEntry(zos, "com.android.deskclock/.DeskClockTabActivity", clockBytes, added);
 
         Bitmap calIcon = renderAppIcon(context, null, "com.xiaomi.calendar", "com.android.calendar.homepage.AllInOneActivity",
-                shapeIndex, themeIndex, styleIndex, opacityPercent, fillPercent, size);
+                shapeIndex, themeIndex, styleIndex, opacityPercent, fillPercent, cornerRadius, size);
         ByteArrayOutputStream calStream = new ByteArrayOutputStream();
         calIcon.compress(Bitmap.CompressFormat.PNG, 100, calStream);
         byte[] calBytes = calStream.toByteArray();
@@ -1210,7 +1170,7 @@ public class IconThemeEngine {
         writeZipEntry(zos, "calendar.png", calBytes, added);
         writeZipEntry(zos, "calendar", calBytes, added);
 
-        // 4. Query ALL installed launcher applications on the device
+        // 3. Query ALL installed launcher applications on the device
         Intent mainIntent = new Intent(Intent.ACTION_MAIN, null);
         mainIntent.addCategory(Intent.CATEGORY_LAUNCHER);
         List<ResolveInfo> apps = pm.queryIntentActivities(mainIntent, 0);
@@ -1224,7 +1184,7 @@ public class IconThemeEngine {
                     Drawable stockIcon = info.loadIcon(pm);
 
                     Bitmap themedBitmap = renderAppIcon(context, stockIcon, pkg, cls, shapeIndex, themeIndex,
-                            styleIndex, opacityPercent, fillPercent, size);
+                            styleIndex, opacityPercent, fillPercent, cornerRadius, size);
                     ByteArrayOutputStream iconStream = new ByteArrayOutputStream();
                     themedBitmap.compress(Bitmap.CompressFormat.PNG, 100, iconStream);
                     byte[] iconBytes = iconStream.toByteArray();
@@ -1234,7 +1194,7 @@ public class IconThemeEngine {
             }
         }
 
-        // 5. Explicitly ensure core HyperOS / MIUI system packages are included
+        // 4. Explicitly ensure core HyperOS / MIUI system packages are included
         String[] criticalPkgs = {
                 "com.android.contacts",
                 "com.google.android.dialer",
@@ -1269,7 +1229,7 @@ public class IconThemeEngine {
                 if (!added.contains(cPkg) || !added.contains(cPkg + ".png")) {
                     Drawable cIcon = pm.getApplicationIcon(cPkg);
                     Bitmap themedBitmap = renderAppIcon(context, cIcon, cPkg, null, shapeIndex, themeIndex,
-                            styleIndex, opacityPercent, fillPercent, size);
+                            styleIndex, opacityPercent, fillPercent, cornerRadius, size);
                     ByteArrayOutputStream iconStream = new ByteArrayOutputStream();
                     themedBitmap.compress(Bitmap.CompressFormat.PNG, 100, iconStream);
                     byte[] iconBytes = iconStream.toByteArray();
@@ -1281,27 +1241,6 @@ public class IconThemeEngine {
 
         zos.close();
         return outFile;
-    }
-
-    private static void writeDynamicLayer(ZipOutputStream zos, String pkg, byte[] plateBytes,
-                                          Bitmap glyphLayer, Set<String> added) throws IOException {
-        writeZipEntry(zos, pkg + "/0.png", plateBytes, added);
-        writeZipEntry(zos, "dynamic/" + pkg + "/0.png", plateBytes, added);
-        if (glyphLayer != null) {
-            ByteArrayOutputStream s = new ByteArrayOutputStream();
-            glyphLayer.compress(Bitmap.CompressFormat.PNG, 100, s);
-            byte[] glyphBytes = s.toByteArray();
-            writeZipEntry(zos, pkg + "/1.png", glyphBytes, added);
-            writeZipEntry(zos, "dynamic/" + pkg + "/1.png", glyphBytes, added);
-        } else {
-            // Empty transparent layer
-            Bitmap empty = Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_8888);
-            ByteArrayOutputStream s = new ByteArrayOutputStream();
-            empty.compress(Bitmap.CompressFormat.PNG, 100, s);
-            byte[] emptyBytes = s.toByteArray();
-            writeZipEntry(zos, pkg + "/1.png", emptyBytes, added);
-            writeZipEntry(zos, "dynamic/" + pkg + "/1.png", emptyBytes, added);
-        }
     }
 
     private static void writeAppEntries(ZipOutputStream zos, byte[] iconBytes, String pkg, String cls,
